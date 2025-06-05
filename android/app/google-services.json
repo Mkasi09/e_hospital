@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "271870584613",
+    "project_id": "e-hospitalinfor",
+    "storage_bucket": "e-hospitalinfor.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:271870584613:android:04bd8075cda9bbe175dccc",
+        "android_client_info": {
+          "package_name": "com.example.e_hospital"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0gqjG_A2PeyZ2QejCwojAInS414ok4m4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
