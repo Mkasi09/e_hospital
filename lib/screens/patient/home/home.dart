@@ -1,3 +1,4 @@
+import 'package:e_hospital/screens/patient/my_appointments/appointments.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../book/book_appointment.dart';
@@ -44,7 +45,7 @@ class PatientHomeScreen extends StatelessWidget {
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
                 children: [
-                  HomeOptionTile(
+                  DashboardCard(
                     icon: Icons.calendar_today,
                     label: 'Book Appointment',
                     onTap: () {
@@ -55,31 +56,33 @@ class PatientHomeScreen extends StatelessWidget {
                     },
 
                   ),
-                  HomeOptionTile(
+                  DashboardCard(
+                    icon: Icons.edit_calendar,
+                    label: 'My Appointments',
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AppointmentsScreen()),
+                      );},
+                  ),
+                  DashboardCard(
                     icon: Icons.folder_shared,
                     label: 'Files & Prescriptions',
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const FilesAndPrescriptionsScreen()),
                       );},
                   ),
-                  HomeOptionTile(
+                  DashboardCard(
                     icon: Icons.chat,
                     label: 'Chat with Doctor',
                     onTap: () {},
                   ),
-                  HomeOptionTile(
-                    icon: Icons.health_and_safety,
-                    label: 'Health Tools',
-                    onTap: () {},
-                  ),
-                  HomeOptionTile(
+                  DashboardCard(
                     icon: Icons.local_hospital,
                     label: 'Emergency & Help',
                     onTap: () {
                       _launchPhone('123');
                     },
                   ),
-                  HomeOptionTile(
+                  DashboardCard(
                     icon: Icons.payment,
                     label: 'Billing & Payment',
                     onTap: () {},

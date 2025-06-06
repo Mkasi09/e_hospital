@@ -1,5 +1,3 @@
-import 'package:e_hospital/screens/admin/home/admin_home.dart';
-import 'package:e_hospital/screens/doctor/home/doctor_home.dart';
 import 'package:e_hospital/screens/patient/home/home.dart';
 import 'package:flutter/material.dart';
 import 'firebase_auth/signin.dart';
@@ -20,7 +18,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'eHospital',
       debugShowCheckedModeBanner: false,
-      home: const LoginPage(),
+      home: const PatientHomeScreen(),
     );
   }
 }
