@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:e_hospital/screens/patient/book/ReasonForVisitField.dart';
 import 'package:flutter/material.dart';
 import 'hospital_dropdown.dart';
@@ -7,11 +8,21 @@ import 'time_slot_selector.dart';
 import 'appointment_service.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
-  const BookAppointmentScreen({super.key});
+  final bool isRescheduling;
+  final String? appointmentId;
+  final Map<String, dynamic>? existingData;
+
+  const BookAppointmentScreen({
+    super.key,
+    this.isRescheduling = false,
+    this.appointmentId,
+    this.existingData,
+  });
 
   @override
   State<BookAppointmentScreen> createState() => _BookAppointmentScreenState();
 }
+
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> with SingleTickerProviderStateMixin {
   String? _selectedHospital;
@@ -28,10 +39,25 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
   @override
   void initState() {
     super.initState();
+
+    if (widget.isRescheduling && widget.existingData != null) {
+      final data = widget.existingData!;
+      _selectedHospital = data['hospital'];
+      _selectedDoctor = data['doctor'];
+      _selectedDate = (data['date'] as Timestamp).toDate();
+      _selectedTime = data['time'];
+      _reasonController.text = data['reason'] ?? '';
+
+      AppointmentService.fetchBookedSlots(_selectedDoctor!, _selectedDate!).then((slots) {
+        setState(() => _bookedSlots = slots);
+      });
+    }
+
     _controller = AnimationController(duration: const Duration(milliseconds: 800), vsync: this);
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
   }
+
 
   @override
   void dispose() {
@@ -41,16 +67,30 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
   }
 
   void _submitAppointment() async {
-    final success = await AppointmentService.submitAppointment(
-      context: context,
-      selectedHospital: _selectedHospital,
-      selectedDoctor: _selectedDoctor,
-      selectedDate: _selectedDate,
-      selectedTime: _selectedTime,
-      reasonController: _reasonController,
-    );
+    bool success;
 
-    if (success) {
+    if (widget.isRescheduling && widget.appointmentId != null) {
+      success = await AppointmentService.rescheduleAppointment(
+        context: context,
+        appointmentId: widget.appointmentId!,
+        newHospital: _selectedHospital!,
+        newDoctor: _selectedDoctor!,
+        newDate: _selectedDate!,
+        newTime: _selectedTime!,
+        reasonController: _reasonController,
+      );
+    } else {
+      success = await AppointmentService.submitAppointment(
+        context: context,
+        selectedHospital: _selectedHospital,
+        selectedDoctor: _selectedDoctor,
+        selectedDate: _selectedDate,
+        selectedTime: _selectedTime,
+        reasonController: _reasonController,
+      );
+    }
+
+    if (success && !widget.isRescheduling) {
       setState(() {
         _selectedHospital = null;
         _selectedDoctor = null;
@@ -59,8 +99,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
         _reasonController.clear();
         _bookedSlots = [];
       });
+    } else if (success) {
+      Navigator.of(context).pop(); // return to detail screen or list
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Appointment rescheduled successfully')),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +118,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              HospitalDropdown(
+              /*HospitalDropdown(
                 selectedHospital: _selectedHospital,
                 onHospitalSelected: (hospital, doctors) {
                   setState(() {
@@ -80,7 +126,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
                     _selectedDoctor = null;
                   });
                 },
-              ),
+              ),*/
               const SizedBox(height: 16),
               DoctorDropdown(
                 hospital: _selectedHospital,

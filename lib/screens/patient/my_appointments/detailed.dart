@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../book/book_appointment.dart';
+
 class AppointmentDetailScreen extends StatelessWidget {
   final String docId;
   final Map<String, dynamic> data;
@@ -48,94 +50,135 @@ class AppointmentDetailScreen extends StatelessWidget {
         title: const Text('Appointment Details'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              data['doctor'] ?? 'Unknown Doctor',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              data['hospital'] ?? 'Unknown Hospital',
-              style: const TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Row(
+            Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.calendar_today, color: Colors.blueAccent),
-                    const SizedBox(width: 8),
                     Text(
-                      '${date.toLocal().toString().split(' ')[0]}',
-                      style: const TextStyle(fontSize: 16),
+                      data['doctor'] ?? 'Unknown Doctor',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      data['hospital'] ?? 'Unknown Hospital',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const Divider(height: 30, thickness: 1),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today, color: Colors.blueGrey),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${date.toLocal().toString().split(' ')[0]}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 30),
+                        const Icon(Icons.access_time, color: Colors.blueGrey),
+                        const SizedBox(width: 8),
+                        Text(time, style: const TextStyle(fontSize: 16)),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Reason for Appointment:',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      reason,
+                      style: const TextStyle(fontSize: 15, color: Colors.black87),
                     ),
                   ],
                 ),
-
-                const SizedBox(width: 32),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time, color: Colors.blueAccent),
-                    const SizedBox(width: 8),
-                    Text(time, style: const TextStyle(fontSize: 16)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Reason:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              reason,
-              style: const TextStyle(fontSize: 16),
+              ),
             ),
             const Spacer(),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () => _editAppointment(context),
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Reschedule'),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BookAppointmentScreen(
+                            isRescheduling: true,
+                            appointmentId: docId,
+                            existingData: data,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Reschedule'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
                 ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Delete Appointment'),
-                        content: const Text('Are you sure you want to delete this appointment?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) {
-                      await _deleteAppointment(context);
-                    }
-                  },
-                  icon: const Icon(Icons.delete),
-                  label: const Text('Delete'),
+
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Cancel Appointment'),
+                          content: const Text('Are you sure you want to cancel this appointment?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text(
+                                'Yes',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        await _deleteAppointment(context);
+                      }
+                    },
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Delete'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: Colors.red[700],
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
                 ),
               ],
-            ),
+            )
           ],
         ),
       ),
     );
   }
+
 }
