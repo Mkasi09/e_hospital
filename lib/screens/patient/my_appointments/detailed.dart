@@ -30,13 +30,22 @@ class AppointmentDetailScreen extends StatelessWidget {
       }
     }
   }
-
-  void _editAppointment(BuildContext context) {
-    // TODO: Navigate to edit screen or implement edit functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edit feature not implemented yet')),
-    );
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'confirmed':
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
+      case 'rejected':
+        return Colors.grey;
+      case 'reschedule_required':
+        return Colors.deepOrange;
+      case 'pending':
+      default:
+        return Colors.orange;
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +79,29 @@ class AppointmentDetailScreen extends StatelessWidget {
                         color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: Colors.deepPurple),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Status: ',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          data['status'] ?? 'pending',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: _getStatusColor(data['status']),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
                     Text(
                       data['hospital'] ?? 'Unknown Hospital',
                       style: const TextStyle(
@@ -107,6 +138,24 @@ class AppointmentDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 8),
+            if ((data['status'] ?? '') == 'reschedule_required') ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.deepOrange[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.warning, color: Colors.deepOrange),
+                    SizedBox(width: 10),
+                    Expanded(child: Text("Doctor unavailable at selected time. Please reschedule."))
+                  ],
+                ),
+              ),
+            ],
             const Spacer(),
             Row(
               children: [

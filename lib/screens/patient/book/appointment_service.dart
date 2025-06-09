@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -38,7 +39,18 @@ class AppointmentService {
     }
 
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw 'User not logged in';
+
+      final userId = user.uid;
+
+      // Fetch patient name from `users` collection
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      final patientName = userDoc.data()?['fullName'] ?? 'Unknown Patient';
+
+      // Standardize time format
       final parts = selectedTime!.split(':');
+
       final appointmentDateTime = DateTime(
         selectedDate!.year,
         selectedDate.month,
@@ -47,6 +59,7 @@ class AppointmentService {
         int.parse(parts[1]),
       );
 
+      // Create appointment
       await _appointmentsRef.add({
         'hospital': selectedHospital,
         'doctor': selectedDoctor,
@@ -54,6 +67,9 @@ class AppointmentService {
         'time': selectedTime,
         'reason': reasonController.text.trim(),
         'createdAt': Timestamp.now(),
+        'status': 'pending',
+        'userId': userId,
+        'patientName': patientName,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

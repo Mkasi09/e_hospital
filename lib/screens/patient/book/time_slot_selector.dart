@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class TimeSlotSelector extends StatelessWidget {
   final DateTime selectedDate;
@@ -34,7 +35,10 @@ class TimeSlotSelector extends StatelessWidget {
         timeOfDay.minute,
       );
       return slotDateTime.isAfter(now);
-    }).map((tod) => tod.format(context)).toList();
+    }).map((tod) {
+      final dt = DateTime(0, 1, 1, tod.hour, tod.minute);
+      return DateFormat('HH:mm').format(dt); // ← 24-hour format
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,8 +76,9 @@ class TimeSlotSelector extends StatelessWidget {
                   selected: isSelected,
                   onSelected: isBooked ? null : (_) => onSlotSelected(slot),
                   selectedColor: Colors.blueAccent,
-                  backgroundColor:
-                  isBooked ? Colors.grey.shade300 : Colors.grey.shade100,
+                  backgroundColor: isBooked
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade100,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

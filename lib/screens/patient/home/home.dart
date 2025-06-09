@@ -1,3 +1,4 @@
+import 'package:e_hospital/screens/patient/chat/chats.dart';
 import 'package:e_hospital/screens/patient/my_appointments/appointments.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -73,7 +74,9 @@ class PatientHomeScreen extends StatelessWidget {
                   DashboardCard(
                     icon: Icons.chat,
                     label: 'Chat with Doctor',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => ChatsScreen()),
+                      );},
                   ),
                   DashboardCard(
                     icon: Icons.local_hospital,
