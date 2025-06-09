@@ -63,8 +63,7 @@ class _SignupPageState extends State<SignupPage> {
           'id': id,
           'fullName': fullName,
           'email': email,
-          'role': "Patient",
-          'createdAt': Timestamp.now(),
+          'role': "patient",
         });
 
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,6 +1,7 @@
 import 'package:e_hospital/firebase_auth/signup.dart';
 import 'package:e_hospital/screens/patient/home/home.dart';
 import 'package:flutter/material.dart';
+import 'firebase_auth/AuthenticationWrapper.dart';
 import 'firebase_auth/signin.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'eHospital',
       debugShowCheckedModeBanner: false,
-      home: const SignupPage(),
+      home: AuthenticationWrapper(),
     );
   }
 }
