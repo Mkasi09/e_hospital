@@ -15,12 +15,14 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController idController = TextEditingController();
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool isLoading = false;
   bool _obscurePassword = true;
+
 
   Future<void> signUp() async {
     if (_formKey.currentState!.validate()) {
@@ -29,7 +31,7 @@ class _SignupPageState extends State<SignupPage> {
       final id = idController.text.trim();
       final fullName = fullNameController.text.trim();
       final password = passwordController.text;
-      final email = '$id@ehospital.com';
+      final email = emailController.text;
 
       try {
         // Optional: check if ID already exists in Firestore
@@ -61,6 +63,7 @@ class _SignupPageState extends State<SignupPage> {
           'id': id,
           'fullName': fullName,
           'email': email,
+          'role': "Patient",
           'createdAt': Timestamp.now(),
         });
 
@@ -116,6 +119,13 @@ class _SignupPageState extends State<SignupPage> {
                 value!.isEmpty ? 'Enter full name' : null,
               ),
               const SizedBox(height: 16),
+              TextFormField(
+                controller: emailController,
+                decoration:
+                const InputDecoration(labelText: 'Email'),
+                validator: (value) =>
+                value!.isEmpty ? 'Enter your email' : null,
+              ),
               TextFormField(
                 controller: passwordController,
                 decoration: InputDecoration(
