@@ -7,15 +7,15 @@ class DoctorDropdown extends StatelessWidget {
   final Function(String?) onDoctorSelected;
 
   const DoctorDropdown({
-    super.key,
+    Key? key,
     required this.hospital,
     required this.selectedDoctor,
     required this.onDoctorSelected,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    if (hospital == null) {
+    if (hospital == null || hospital!.isEmpty) {
       return const SizedBox();
     }
 
@@ -47,9 +47,7 @@ class DoctorDropdown extends StatelessWidget {
             color: Theme.of(context).colorScheme.surface,
           ),
           child: GestureDetector(
-            onTap: () {
-              _showDoctorPicker(context, doctors);
-            },
+            onTap: () => _showDoctorPicker(context, doctors),
             child: Row(
               children: [
                 Container(
@@ -95,32 +93,35 @@ class DoctorDropdown extends StatelessWidget {
   void _showDoctorPicker(BuildContext context, List<String> doctors) {
     showModalBottomSheet(
       context: context,
-      builder: (_) => ListView.builder(
-        itemCount: doctors.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(doctors[index]),
-            onTap: () {
-              Navigator.pop(context);
-              onDoctorSelected(doctors[index]);
-            },
-          );
-        },
+      builder: (context) => SafeArea(
+        child: ListView.builder(
+          itemCount: doctors.length,
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Text(doctors[index]),
+              onTap: () {
+                Navigator.pop(context);
+                onDoctorSelected(doctors[index]);
+              },
+            );
+          },
+        ),
       ),
     );
   }
 
   Future<List<String>> _fetchDoctors(String hospitalName) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('hospitals')
-        .where('name', isEqualTo: hospitalName)
-        .limit(1)
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('role', isEqualTo: 'doctor')
+        .where('hospitalName', isEqualTo: hospitalName)
         .get();
 
-    if (doc.docs.isNotEmpty) {
-      return List<String>.from(doc.docs.first.data()['doctors']);
-    }
+    final doctors = querySnapshot.docs
+        .map((doc) => doc.data()['name'] as String?)
+        .whereType<String>()
+        .toList();
 
-    return [];
+    return doctors;
   }
 }
