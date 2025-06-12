@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../../firebase_auth/user_id.dart';
 import 'doctors_detailed_appointment.dart';
 
 class DoctorAppointments extends StatelessWidget {
@@ -45,7 +46,7 @@ class DoctorAppointments extends StatelessWidget {
               final status = data['status'] ?? 'Unknown';
               final time = data['time'] ?? 'N/A';
               final date = data['date']?.toDate();
-              final userId = CurrentUser.uid;
+              final uid = CurrentUser.uid;
 
               return Card(
                 color: Colors.white,
