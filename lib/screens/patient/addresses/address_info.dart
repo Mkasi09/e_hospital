@@ -136,7 +136,7 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
                     : ElevatedButton(
                   onPressed: _saveDetails,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Colors.bluea,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   child: const Text('Save and Continue'),

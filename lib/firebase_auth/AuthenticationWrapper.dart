@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:e_hospital/firebase_auth/set_new_password.dart';
 import 'package:e_hospital/firebase_auth/signin.dart';
+import 'package:e_hospital/firebase_auth/user_id.dart';
 import 'package:e_hospital/screens/doctor/home/doctor_home.dart';
 import 'package:e_hospital/screens/patient/home/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,9 @@ class AuthenticationWrapper extends StatelessWidget {
     if (user == null) {
       return LoginPage();
     }
+
+    // ✅ Set UID globally
+    CurrentUser.uid = user.uid;
 
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
