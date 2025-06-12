@@ -1,7 +1,9 @@
+import 'package:e_hospital/screens/doctor/appointments/patients_appointments.dart';
 import 'package:flutter/material.dart';
 
 import '../../../widgets/drawer.dart';
 import '../../../widgets/home_tile.dart';
+import '../../patient/my_appointments/appointments.dart';
 
 class DoctorsHomepage extends StatelessWidget {
   final String doctorName;
@@ -48,7 +50,10 @@ class DoctorsHomepage extends StatelessWidget {
                     icon: Icons.calendar_today,
                     label: 'Appointments',
                     onTap: () {
-                      // Navigate to appointments screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DoctorAppointments()),
+                      );
                     },
                   ),
                   DashboardCard(
