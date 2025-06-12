@@ -197,7 +197,7 @@ class _FilesAndPrescriptionsScreenState
         onPressed: null,
         icon: const Icon(Icons.upload_file),
         label: const Text('Upload Document'),
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.blueAccent,
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,

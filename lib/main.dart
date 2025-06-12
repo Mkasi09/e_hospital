@@ -1,3 +1,4 @@
+import 'package:e_hospital/firebase_auth/set_new_password.dart';
 import 'package:e_hospital/firebase_auth/signup.dart';
 import 'package:e_hospital/screens/patient/home/home.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'eHospital',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+        useMaterial3: true,
+      ),
       debugShowCheckedModeBanner: false,
       home: AuthenticationWrapper(),
     );

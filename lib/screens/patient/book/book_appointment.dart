@@ -23,10 +23,10 @@ class BookAppointmentScreen extends StatefulWidget {
   State<BookAppointmentScreen> createState() => _BookAppointmentScreenState();
 }
 
-
-class _BookAppointmentScreenState extends State<BookAppointmentScreen> with SingleTickerProviderStateMixin {
+class _BookAppointmentScreenState extends State<BookAppointmentScreen>
+    with SingleTickerProviderStateMixin {
   String? _selectedHospital;
-  String? _selectedDoctor;
+  Map<String, String>? _selectedDoctor;
   DateTime? _selectedDate;
   String? _selectedTime;
   final TextEditingController _reasonController = TextEditingController();
@@ -43,21 +43,29 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
     if (widget.isRescheduling && widget.existingData != null) {
       final data = widget.existingData!;
       _selectedHospital = data['hospital'];
-      _selectedDoctor = data['doctor'];
+      _selectedDoctor = {
+        'name': data['doctor'],
+        'specialty': '',
+      }; // You can fetch actual specialty if needed
       _selectedDate = (data['date'] as Timestamp).toDate();
       _selectedTime = data['time'];
       _reasonController.text = data['reason'] ?? '';
 
-      AppointmentService.fetchBookedSlots(_selectedDoctor!, _selectedDate!).then((slots) {
+      AppointmentService.fetchBookedSlots(
+        _selectedDoctor!['name']!,
+        _selectedDate!,
+      ).then((slots) {
         setState(() => _bookedSlots = slots);
       });
     }
 
-    _controller = AnimationController(duration: const Duration(milliseconds: 800), vsync: this);
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
   }
-
 
   @override
   void dispose() {
@@ -74,7 +82,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
         context: context,
         appointmentId: widget.appointmentId!,
         newHospital: _selectedHospital!,
-        newDoctor: _selectedDoctor!,
+        newDoctor: _selectedDoctor!['name']!,
         newDate: _selectedDate!,
         newTime: _selectedTime!,
         reasonController: _reasonController,
@@ -83,7 +91,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
       success = await AppointmentService.submitAppointment(
         context: context,
         selectedHospital: _selectedHospital,
-        selectedDoctor: _selectedDoctor,
+        selectedDoctor: _selectedDoctor!['name']!,
         selectedDate: _selectedDate,
         selectedTime: _selectedTime,
         reasonController: _reasonController,
@@ -107,7 +115,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,7 +125,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              HospitalDropdown(
+             /* HospitalDropdown(
                 selectedHospital: _selectedHospital,
                 onHospitalSelected: (hospital, doctors) {
                   setState(() {
@@ -126,7 +133,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
                     _selectedDoctor = null;
                   });
                 },
-              ),
+              ),*/
               const SizedBox(height: 16),
               DoctorDropdown(
                 hospital: _selectedHospital,
@@ -134,10 +141,15 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
                 onDoctorSelected: (doctor) async {
                   setState(() {
                     _selectedDoctor = doctor;
-                    _selectedTime = null;
                   });
-                  if (_selectedDate != null) {
-                    _bookedSlots = await AppointmentService.fetchBookedSlots(doctor!, _selectedDate!);
+                  if (doctor != null && _selectedDate != null) {
+                    final slots = await AppointmentService.fetchBookedSlots(
+                      doctor['name']!,
+                      _selectedDate!,
+                    );
+                    setState(() {
+                      _bookedSlots = slots;
+                    });
                   }
                 },
               ),
@@ -147,7 +159,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
                 onDatePicked: (date) async {
                   setState(() => _selectedDate = date);
                   if (_selectedDoctor != null) {
-                    _bookedSlots = await AppointmentService.fetchBookedSlots(_selectedDoctor!, date);
+                    _bookedSlots = await AppointmentService.fetchBookedSlots(
+                      _selectedDoctor!['name']!,
+                      date,
+                    );
                   }
                 },
               ),
@@ -157,17 +172,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> with Sing
                   selectedDate: _selectedDate!,
                   bookedSlots: _bookedSlots,
                   selectedTime: _selectedTime,
-                  onSlotSelected: (slot) => setState(() => _selectedTime = slot),
+                  onSlotSelected:
+                      (slot) => setState(() => _selectedTime = slot),
                 ),
               const SizedBox(height: 16),
-              ReasonForVisitField(
-                controller: _reasonController,
-              ),
+              ReasonForVisitField(controller: _reasonController),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submitAppointment,
                 child: const Text('Book Appointment'),
-              )
+              ),
             ],
           ),
         ),

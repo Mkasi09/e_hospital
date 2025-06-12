@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class DoctorDropdown extends StatelessWidget {
+class DoctorDropdown extends StatefulWidget {
   final String? hospital;
-  final String? selectedDoctor;
-  final Function(String?) onDoctorSelected;
+  final Map<String, String>? selectedDoctor; // {name: "Dr. A", specialty: "Cardiology"}
+  final Function(Map<String, String>?) onDoctorSelected;
 
   const DoctorDropdown({
     Key? key,
@@ -14,13 +14,20 @@ class DoctorDropdown extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<DoctorDropdown> createState() => _DoctorDropdownState();
+}
+
+class _DoctorDropdownState extends State<DoctorDropdown> {
+  List<Map<String, String>> _allDoctors = [];
+
+  @override
   Widget build(BuildContext context) {
-    if (hospital == null || hospital!.isEmpty) {
+    if (widget.hospital == null || widget.hospital!.isEmpty) {
       return const SizedBox();
     }
 
-    return FutureBuilder<List<String>>(
-      future: _fetchDoctors(hospital!),
+    return FutureBuilder<List<Map<String, String>>>(
+      future: _fetchDoctors(widget.hospital!),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
@@ -36,7 +43,7 @@ class DoctorDropdown extends StatelessWidget {
           );
         }
 
-        final doctors = snapshot.data!;
+        _allDoctors = snapshot.data!;
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -47,7 +54,7 @@ class DoctorDropdown extends StatelessWidget {
             color: Theme.of(context).colorScheme.surface,
           ),
           child: GestureDetector(
-            onTap: () => _showDoctorPicker(context, doctors),
+            onTap: () => _showDoctorPicker(context),
             child: Row(
               children: [
                 Container(
@@ -72,7 +79,9 @@ class DoctorDropdown extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        selectedDoctor ?? 'Tap to choose a doctor',
+                        widget.selectedDoctor != null
+                            ? '${widget.selectedDoctor!['name']} - ${widget.selectedDoctor!['specialty']}'
+                            : 'Tap to choose a doctor',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -90,38 +99,90 @@ class DoctorDropdown extends StatelessWidget {
     );
   }
 
-  void _showDoctorPicker(BuildContext context, List<String> doctors) {
+  void _showDoctorPicker(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
-        child: ListView.builder(
-          itemCount: doctors.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(doctors[index]),
-              onTap: () {
-                Navigator.pop(context);
-                onDoctorSelected(doctors[index]);
-              },
+      isScrollControlled: true,
+      builder: (context) {
+        TextEditingController searchController = TextEditingController();
+        List<Map<String, String>> filteredDoctors = List.from(_allDoctors);
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            void _filterDoctors(String query) {
+              setState(() {
+                filteredDoctors = _allDoctors.where((doctor) {
+                  final name = doctor['name']!.toLowerCase();
+                  final specialty = doctor['specialty']!.toLowerCase();
+                  return name.contains(query.toLowerCase()) || specialty.contains(query.toLowerCase());
+                }).toList();
+              });
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: searchController,
+                        onChanged: _filterDoctors,
+                        decoration: InputDecoration(
+                          hintText: 'Search by name or specialty',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: filteredDoctors.length,
+                          itemBuilder: (context, index) {
+                            final doctor = filteredDoctors[index];
+                            return ListTile(
+                              title: Text(doctor['name'] ?? ''),
+                              subtitle: Text(doctor['specialty'] ?? ''),
+                              onTap: () {
+                                Navigator.pop(context);
+                                widget.onDoctorSelected(doctor);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             );
           },
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Future<List<String>> _fetchDoctors(String hospitalName) async {
+  Future<List<Map<String, String>>> _fetchDoctors(String hospitalName) async {
     final querySnapshot = await FirebaseFirestore.instance
         .collection('users')
         .where('role', isEqualTo: 'doctor')
         .where('hospitalName', isEqualTo: hospitalName)
         .get();
 
-    final doctors = querySnapshot.docs
-        .map((doc) => doc.data()['name'] as String?)
-        .whereType<String>()
+    return querySnapshot.docs
+        .map((doc) {
+      final data = doc.data();
+      final name = data['name'] as String?;
+      final specialty = data['specialty'] as String?;
+      if (name != null) {
+        return {'name': name, 'specialty': specialty ?? 'Unknown'};
+      }
+      return null;
+    })
+        .whereType<Map<String, String>>()
         .toList();
-
-    return doctors;
   }
 }

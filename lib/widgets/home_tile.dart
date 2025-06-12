@@ -25,7 +25,7 @@ class DashboardCard extends StatelessWidget {
             children: [
               Icon(icon, size: 40, color: Colors.blue.shade700),
               const SizedBox(height: 8),
-              Text(label, style: const TextStyle(fontSize: 16)),
+              Text(label, style: const TextStyle(fontSize: 14)),
             ],
           ),
         ),

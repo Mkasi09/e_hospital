@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../firebase_auth/signin.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -13,7 +15,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String fullName = 'Loading...';
   String email = '';
   String? profilePicture;
-  String userType = ''; // either 'doctor' or 'patient'
+  String userType = '';
+  String phone = '';
+  String nextOfKin = '';
+  String address = '';
 
   @override
   void initState() {
@@ -31,11 +36,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (snapshot.exists) {
         final data = snapshot.data()!;
+        final addressData = data['address'] as Map<String, dynamic>?;
+
         setState(() {
           fullName = data['fullName'] ?? 'No Name';
           email = user.email ?? '';
           userType = data['userType'] ?? 'patient';
-          profilePicture = data['profilePicture'];
+          phone = data['phone'] ?? '';
+          nextOfKin = data['nextOfKin'] ?? '';
+          address = addressData != null
+              ? '${addressData['street'] ?? ''}, ${addressData['city'] ?? ''}, ${addressData['province'] ?? ''}, ${addressData['postalCode'] ?? ''}, ${addressData['country'] ?? ''}'
+              : 'No address provided';
         });
       }
     }
@@ -48,66 +59,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Profile'),
+        backgroundColor: Colors.blueAccent,
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
       ),
-      backgroundColor: Colors.grey.shade100,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            if (isDoctor && profilePicture != null)
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: NetworkImage(profilePicture!),
-              ),
-            if (isDoctor && profilePicture != null)
-              const SizedBox(height: 16),
+      body: Container(
+        width: double.infinity,
+        color: Colors.grey[100],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              if (isDoctor && profilePicture != null)
+                CircleAvatar(
+                  radius: 50,
+                  backgroundImage: NetworkImage(profilePicture!),
+                ),
+              if (isDoctor && profilePicture != null)
+                const SizedBox(height: 16),
 
-            Text(
-              fullName,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
+              Text(
+                fullName,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              email,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
+              const SizedBox(height: 4),
+              Text(
+                email,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black54,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            _buildProfileOption(
-              icon: Icons.edit,
-              label: 'Edit Profile',
-              onTap: () {
-                // TODO: Navigate to edit profile
-              },
-            ),
-            _buildProfileOption(
-              icon: Icons.lock,
-              label: 'Change Password',
-              onTap: () {
-                // TODO: Navigate to password reset
-              },
-            ),
-            _buildProfileOption(
-              icon: Icons.logout,
-              label: 'Logout',
-              iconColor: Colors.red,
-              onTap: () async {
-                await FirebaseAuth.instance.signOut();
-                if (!mounted) return;
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-            ),
-          ],
+
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    )
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Personal Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _infoRow('Phone Number', phone),
+                    _infoRow('Next of Kin', nextOfKin),
+                    _infoRow('Address', address),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              _buildProfileOption(
+                icon: Icons.lock,
+                label: 'Change Password',
+                onTap: () {
+                  // TODO: Navigate to change password screen
+                },
+              ),
+              _buildProfileOption(
+                icon: Icons.logout,
+                label: 'Logout',
+                iconColor: Colors.red,
+                onTap: () => _logout(context),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "$label: ",
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          Expanded(
+            child: Text(
+              value.isNotEmpty ? value : "Not provided",
+              style: const TextStyle(color: Colors.black87),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -121,13 +180,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
+      elevation: 3,
       child: ListTile(
-        leading: Icon(icon, color: iconColor ?? Colors.blue.shade700),
-        title: Text(label),
+        leading: Icon(icon, color: iconColor ?? Colors.blueAccent),
+        title: Text(
+          label,
+          style: const TextStyle(fontSize: 16),
+        ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
       ),
     );
   }
+}
+
+Future<void> _logout(BuildContext context) async {
+  await FirebaseAuth.instance.signOut();
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (context) => LoginPage()),
+        (route) => false,
+  );
 }
