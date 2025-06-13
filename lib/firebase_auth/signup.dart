@@ -23,6 +23,39 @@ class _SignupPageState extends State<SignupPage> {
   bool isLoading = false;
   bool _obscurePassword = true;
 
+  bool isValidSouthAfricanID(String id) {
+    if (id.length != 13 || int.tryParse(id) == null) return false;
+
+    try {
+      // Check DOB is valid
+      final yy = int.parse(id.substring(0, 2));
+      final mm = int.parse(id.substring(2, 4));
+      final dd = int.parse(id.substring(4, 6));
+
+      final now = DateTime.now();
+      final century = (yy > now.year % 100) ? 1900 : 2000;
+      final dob = DateTime(century + yy, mm, dd);
+
+      if (dob.month != mm || dob.day != dd) return false;
+
+      // Luhn Check
+      int sum = 0;
+      for (int i = 0; i < 12; i++) {
+        int digit = int.parse(id[i]);
+        if (i % 2 == 0) {
+          sum += digit;
+        } else {
+          int doubled = digit * 2;
+          sum += (doubled > 9) ? doubled - 9 : doubled;
+        }
+      }
+
+      int checkDigit = (10 - (sum % 10)) % 10;
+      return checkDigit == int.parse(id[12]);
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<void> signUp() async {
     if (_formKey.currentState!.validate()) {
@@ -135,7 +168,12 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                       prefixIcon: const Icon(Icons.perm_identity),
                     ),
-                    validator: (value) => value!.isEmpty ? 'Enter your ID' : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Enter your ID';
+                      if (!isValidSouthAfricanID(value)) return 'Invalid South African ID';
+                      return null;
+                    },
+
                   ),
                   const SizedBox(height: 20),
 
