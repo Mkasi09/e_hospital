@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../widgets/drawer.dart';
 import '../../../widgets/home_tile.dart';
 import '../../patient/my_appointments/appointments.dart';
+import '../patients/Doctors_patient_screen.dart';
 
 class DoctorsHomepage extends StatelessWidget {
   final String doctorName;
@@ -59,9 +60,12 @@ class DoctorsHomepage extends StatelessWidget {
                   DashboardCard(
                     icon: Icons.people,
                     label: 'Patients',
-                    onTap: () {
-                      // Navigate to patients screen
-                    },
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const PatientsScreen()),
+                        );
+                      },
                   ),
                   DashboardCard(
                     icon: Icons.schedule,
