@@ -139,9 +139,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           phone = data['phone'] ?? '';
           nextOfKin = data['nextOfKin'] ?? '';
           id = data['id'] ?? '';
-          nextOfKinPhone = data['nextOfKin\'sPhone'] ?? '';
+          nextOfKinPhone = data['nextOfKinPhone'] ?? '';
           gender = data['gender'] ?? '';
-          dob = data['dob'] ?? '';
+          dob = _parseDobFromId(id);
           address = addressData != null
               ? '${addressData['street'] ?? ''}, ${addressData['city'] ?? ''}, ${addressData['province'] ?? ''}, ${addressData['postalCode'] ?? ''}, ${addressData['country'] ?? ''}'
               : 'No address provided';
@@ -149,6 +149,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+  String _parseDobFromId(String idNumber) {
+    if (idNumber.length < 6) return '';
+
+    try {
+      final year = int.parse(idNumber.substring(0, 2));
+      final month = int.parse(idNumber.substring(2, 4));
+      final day = int.parse(idNumber.substring(4, 6));
+
+      // South African ID assumes:
+      // If year is > currentYear % 100, then it's 1900s, else 2000s
+      final currentYear = DateTime.now().year;
+      final century = (year > currentYear % 100) ? 1900 : 2000;
+      final fullYear = century + year;
+
+      final date = DateTime(fullYear, month, day);
+      return "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
+    } catch (e) {
+      return '';
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _infoRow('Gender', gender),
                     _infoRow('Date of birthday', dob),
                     _infoRow('Phone Number', phone),
-                    _infoRow('Next of Kin', nextOfKin+'(nextOfKin\'sPhone)'),
+                    _infoRow('Next of Kin', nextOfKin+' ('+nextOfKinPhone+')'),
                     _infoRow('Address', address),
                   ],
                 ),

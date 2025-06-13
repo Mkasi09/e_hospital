@@ -59,6 +59,7 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
   final _countryController = TextEditingController();
   final _phoneController = TextEditingController();
   final _nextOfKinController = TextEditingController();
+  String? _selectedGender;
   final _nextOfKinPhoneController = TextEditingController();
 
   bool _isSaving = false;
@@ -88,11 +89,13 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
         'postalCode': _postalCodeController.text.trim(),
         'country': _countryController.text.trim(),
       },
-      'phone': "0"+normalizePhoneNumber(_phoneController.text),
+      'gender': _selectedGender,
+      'phone': "0" + normalizePhoneNumber(_phoneController.text),
       'nextOfKin': _nextOfKinController.text.trim(),
-      'nextOfKin\'sPhone': "0"+normalizePhoneNumber(_nextOfKinPhoneController.text),
+      'nextOfKinPhone': "0" + normalizePhoneNumber(_nextOfKinPhoneController.text),
       'profileComplete': true,
     });
+
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Details saved successfully')),
@@ -158,6 +161,30 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
       ),
     );
   }
+  Widget _buildGenderDropdown() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: 'Gender',
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        value: _selectedGender,
+        items: const [
+          DropdownMenuItem(value: 'Male', child: Text('Male')),
+          DropdownMenuItem(value: 'Female', child: Text('Female')),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _selectedGender = value;
+          });
+        },
+        validator: (value) => value == null ? 'Select Gender' : null,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,6 +227,8 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
               _buildPhoneField(_phoneController, 'Phone Number', keyboardType: TextInputType.phone),
               _buildTextField(_nextOfKinController, 'Next of Kin'),
               _buildPhoneField(_nextOfKinPhoneController, 'Next of Kin\'s Phone Number', keyboardType: TextInputType.phone),
+              _buildGenderDropdown(),
+
 
               const SizedBox(height: 20),
               SizedBox(
