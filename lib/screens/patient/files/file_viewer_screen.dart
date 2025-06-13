@@ -18,12 +18,7 @@ class FileViewerScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(fileName)),
       body: fileExtension == 'pdf'
-          ? SfPdfViewer.network(
-        fileUrl,
-        onDocumentLoadFailed: (details) {
-          print('PDF load failed: ${details.description}');
-        },
-      )
+          ? SfPdfViewer.network(fileUrl)
           : InteractiveViewer(
         child: Center(
           child: Image.network(fileUrl),

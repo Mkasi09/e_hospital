@@ -13,6 +13,43 @@ class AdditionalDetailsScreen extends StatefulWidget {
 }
 
 class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    _phoneController.addListener(() {
+      String text = _phoneController.text;
+      if (text.startsWith('0')) {
+        _phoneController.text = text.substring(1);
+        _phoneController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _phoneController.text.length),
+        );
+      }
+      if (_phoneController.text.length > 9) {
+        _phoneController.text = _phoneController.text.substring(0, 9);
+        _phoneController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _phoneController.text.length),
+        );
+      }
+    });
+
+    _nextOfKinPhoneController.addListener(() {
+      String text = _nextOfKinPhoneController.text;
+      if (text.startsWith('0')) {
+        _nextOfKinPhoneController.text = text.substring(1);
+        _nextOfKinPhoneController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _nextOfKinPhoneController.text.length),
+        );
+      }
+      if (_nextOfKinPhoneController.text.length > 9) {
+        _nextOfKinPhoneController.text = _nextOfKinPhoneController.text.substring(0, 9);
+        _nextOfKinPhoneController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _nextOfKinPhoneController.text.length),
+        );
+      }
+    });
+  }
+
   final _formKey = GlobalKey<FormState>();
 
   final _streetController = TextEditingController();
@@ -25,6 +62,14 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
   final _nextOfKinPhoneController = TextEditingController();
 
   bool _isSaving = false;
+
+  String normalizePhoneNumber(String phone) {
+    String trimmed = phone.trim();
+    if (trimmed.startsWith('0')) {
+      return trimmed.substring(1);
+    }
+    return trimmed;
+  }
 
   void _saveDetails() async {
     if (!_formKey.currentState!.validate()) return;
@@ -43,9 +88,9 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
         'postalCode': _postalCodeController.text.trim(),
         'country': _countryController.text.trim(),
       },
-      'phone': _phoneController.text.trim(),
+      'phone': "0"+normalizePhoneNumber(_phoneController.text),
       'nextOfKin': _nextOfKinController.text.trim(),
-      'nextOfKin\'sPhone': _nextOfKinController.text.trim(),
+      'nextOfKin\'sPhone': "0"+normalizePhoneNumber(_nextOfKinPhoneController.text),
       'profileComplete': true,
     });
 
@@ -59,12 +104,41 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
     );
   }
 
+
   void _skip() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => AuthenticationWrapper()),
     );
   }
+  Widget _buildPhoneField(TextEditingController controller, String label, {required TextInputType keyboardType}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        maxLength: 9,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixText: '+27 ',
+          counterText: '', // hides character counter
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Enter $label';
+          }
+          if (!RegExp(r'^[1-9][0-9]{8}$').hasMatch(value.trim())) {
+            return 'Enter valid 9-digit number without 0';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
 
   Widget _buildTextField(TextEditingController controller, String label,
       {TextInputType keyboardType = TextInputType.text}) {
@@ -123,9 +197,9 @@ class _AdditionalDetailsScreenState extends State<AdditionalDetailsScreen> {
               _buildTextField(_provinceController, 'Province/State'),
               _buildTextField(_postalCodeController, 'Postal Code'),
               _buildTextField(_countryController, 'Country'),
-              _buildTextField(_phoneController, 'Phone Number', keyboardType: TextInputType.phone),
+              _buildPhoneField(_phoneController, 'Phone Number', keyboardType: TextInputType.phone),
               _buildTextField(_nextOfKinController, 'Next of Kin'),
-              _buildTextField(_nextOfKinPhoneController, 'Next of Kin\'s Phone Number'),
+              _buildPhoneField(_nextOfKinPhoneController, 'Next of Kin\'s Phone Number', keyboardType: TextInputType.phone),
 
               const SizedBox(height: 20),
               SizedBox(

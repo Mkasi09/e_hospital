@@ -19,6 +19,29 @@ class PatientFileCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: Text('Are you sure you want to delete "$title"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(), // Cancel
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop(); // Close dialog
+              onDelete(); // Call delete callback
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final extension = downloadUrl.split('.').last.toLowerCase();
@@ -35,7 +58,7 @@ class PatientFileCard extends StatelessWidget {
         subtitle: Text('Uploaded on: ${date.toLocal().toString().split(' ')[0]}'),
         trailing: IconButton(
           icon: const Icon(Icons.delete, color: Colors.red),
-          onPressed: onDelete,
+          onPressed: () => _showDeleteConfirmation(context),
         ),
         onTap: () {
           Navigator.push(

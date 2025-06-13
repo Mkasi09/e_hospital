@@ -19,12 +19,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String phone = '';
   String nextOfKin = '';
   String address = '';
-
+  String id = "";
+  String dob = '';
+  String gender = '';
+  String nextOfKinPhone = '';
   @override
   void initState() {
     super.initState();
     _loadUserData();
   }
+  void _showEditAddressDialog() {
+    final streetController = TextEditingController();
+    final cityController = TextEditingController();
+    final provinceController = TextEditingController();
+    final postalCodeController = TextEditingController();
+    final countryController = TextEditingController();
+
+    final phoneController = TextEditingController(text: phone);
+    final nextOfKinController = TextEditingController(text: nextOfKin);
+
+    // Pre-fill address fields by splitting existing address string
+    final parts = address.split(',').map((e) => e.trim()).toList();
+    if (parts.length >= 5) {
+      streetController.text = parts[0];
+      cityController.text = parts[1];
+      provinceController.text = parts[2];
+      postalCodeController.text = parts[3];
+      countryController.text = parts[4];
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Personal Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Phone Number'),
+              ),
+              TextField(
+                controller: nextOfKinController,
+                decoration: const InputDecoration(labelText: 'Next of Kin'),
+              ),
+              const Divider(height: 32),
+              TextField(
+                controller: streetController,
+                decoration: const InputDecoration(labelText: 'Street'),
+              ),
+              TextField(
+                controller: cityController,
+                decoration: const InputDecoration(labelText: 'City'),
+              ),
+              TextField(
+                controller: provinceController,
+                decoration: const InputDecoration(labelText: 'Province'),
+              ),
+              TextField(
+                controller: postalCodeController,
+                decoration: const InputDecoration(labelText: 'Postal Code'),
+              ),
+              TextField(
+                controller: countryController,
+                decoration: const InputDecoration(labelText: 'Country'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                final addressData = {
+                  'street': streetController.text.trim(),
+                  'city': cityController.text.trim(),
+                  'province': provinceController.text.trim(),
+                  'postalCode': postalCodeController.text.trim(),
+                  'country': countryController.text.trim(),
+                };
+                await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                  'phone': phoneController.text.trim(),
+                  'nextOfKin': nextOfKinController.text.trim(),
+                  'address': addressData,
+                });
+                Navigator.pop(context);
+                _loadUserData(); // Refresh UI
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -44,6 +138,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           userType = data['userType'] ?? 'patient';
           phone = data['phone'] ?? '';
           nextOfKin = data['nextOfKin'] ?? '';
+          id = data['id'] ?? '';
+          nextOfKinPhone = data['nextOfKin\'sPhone'] ?? '';
+          gender = data['gender'] ?? '';
+          dob = data['dob'] ?? '';
           address = addressData != null
               ? '${addressData['street'] ?? ''}, ${addressData['city'] ?? ''}, ${addressData['province'] ?? ''}, ${addressData['postalCode'] ?? ''}, ${addressData['country'] ?? ''}'
               : 'No address provided';
@@ -113,21 +211,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Personal Details',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Personal Details',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                          onPressed: _showEditAddressDialog,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
+                    _infoRow('ID Number', id),
+                    _infoRow('Gender', gender),
+                    _infoRow('Date of birthday', dob),
                     _infoRow('Phone Number', phone),
-                    _infoRow('Next of Kin', nextOfKin),
+                    _infoRow('Next of Kin', nextOfKin+'(nextOfKin\'sPhone)'),
                     _infoRow('Address', address),
                   ],
                 ),
               ),
+
               const SizedBox(height: 30),
 
               _buildProfileOption(
