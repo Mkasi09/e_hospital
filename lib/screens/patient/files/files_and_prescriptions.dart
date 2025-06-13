@@ -1,31 +1,35 @@
+import 'package:e_hospital/screens/patient/files/upload_confirmation_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-// import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'official_hospital_file_cards.dart';
+import 'patient_file_card.dart';
+import 'file_upload_service.dart';
+
 
 class FilesAndPrescriptionsScreen extends StatefulWidget {
   const FilesAndPrescriptionsScreen({super.key});
 
   @override
-
-
   State<FilesAndPrescriptionsScreen> createState() =>
       _FilesAndPrescriptionsScreenState();
 }
 
-class _FilesAndPrescriptionsScreenState
-    extends State<FilesAndPrescriptionsScreen> with SingleTickerProviderStateMixin {
+class _FilesAndPrescriptionsScreenState extends State<FilesAndPrescriptionsScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
+  File? _selectedFile;
+  String? _selectedFileName;
+  String? _selectedFileExtension;
+  bool _isUploading = false;
 
-  // Firestore collection references (adjust 'patients' and 'patientId' as needed)
-  final String patientId = "patient_123"; // Replace with actual logged in patient ID
-  final CollectionReference patientFilesCollection = FirebaseFirestore.instance
-      .collection('patients')
-      .doc("patient_123")
-      .collection('uploaded_files');
+  final String patientId = FirebaseAuth.instance.currentUser!.uid;
+  final CollectionReference patientFilesCollection =
+  FirebaseFirestore.instance.collection('uploaded_files');
 
   final List<Map<String, String>> _hospitalFiles = [
     {'title': 'Blood Test Report', 'date': '2025-03-10'},
@@ -50,48 +54,45 @@ class _FilesAndPrescriptionsScreenState
     super.dispose();
   }
 
-  /* Future<void> _pickAndUploadFile() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-      );
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
 
-      if (result == null || result.files.isEmpty) return;
+    if (result == null || result.files.isEmpty) return;
 
-      final filePath = result.files.single.path!;
-      final fileName = result.files.single.name;
+    setState(() {
+      _selectedFile = File(result.files.single.path!);
+      _selectedFileName = result.files.single.name;
+      _selectedFileExtension = result.files.single.extension?.toLowerCase();
+    });
 
-      // Upload to Firebase Storage
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('patients')
-          .child(patientId)
-          .child('uploads')
-          .child(fileName);
-
-      final uploadTask = storageRef.putFile(File(filePath));
-
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-
-      // Save metadata to Firestore
-      await patientFilesCollection.add({
-        'title': fileName,
-        'date': DateTime.now(),
-        'status': 'pending', // new uploads start as pending
-        'downloadUrl': downloadUrl,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document uploaded for review.')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload failed: $e')),
-      );
-    }
-  }*/
+    showFilePreviewDialog(
+      context: context,
+      file: _selectedFile!,
+      fileName: _selectedFileName!,
+      extension: _selectedFileExtension!,
+      isUploading: _isUploading,
+      onUpload: () async {
+        setState(() => _isUploading = true);
+        await uploadFileToCloudinaryAndFirestore(
+          file: _selectedFile!,
+          fileName: _selectedFileName!,
+          patientFilesCollection: patientFilesCollection,
+          context: context,
+        );
+        setState(() => _isUploading = false);
+      },
+      onCancel: () {
+        setState(() {
+          _selectedFile = null;
+          _selectedFileName = null;
+          _selectedFileExtension = null;
+        });
+      },
+    );
+  }
 
   Future<void> _deletePatientFile(String docId) async {
     try {
@@ -106,86 +107,6 @@ class _FilesAndPrescriptionsScreenState
     }
   }
 
-  Widget _buildVerifiedFileCard({required String title, required String date}) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        leading: const Icon(Icons.verified, color: Colors.blue),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('Date: $date'),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Viewing official file: "$title"')),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPatientFileCard({
-    required String docId,
-    required String title,
-    required DateTime date,
-    required String status,
-    required String downloadUrl,
-  }) {
-    Color statusColor;
-    IconData statusIcon;
-
-    switch (status) {
-      case 'approved':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'rejected':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-      default:
-        statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_bottom;
-    }
-
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        leading: Icon(Icons.upload_file, color: Colors.orange),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('Date: ${date.toLocal().toIso8601String().split('T').first}'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(statusIcon, color: statusColor, size: 20),
-            const SizedBox(width: 8),
-            Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
-            if (status == 'pending') ...[
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.delete, color: Colors.grey),
-                tooltip: 'Delete',
-                onPressed: () => _deletePatientFile(docId),
-              ),
-            ],
-          ],
-        ),
-        onTap: () {
-          // Open file URL (for now just showing snackbar)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opening document: "$title"')),
-          );
-          // To actually open/download, integrate url_launcher or a PDF/image viewer
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -194,7 +115,7 @@ class _FilesAndPrescriptionsScreenState
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: null,
+        onPressed: _pickFile,
         icon: const Icon(Icons.upload_file),
         label: const Text('Upload Document'),
         backgroundColor: Colors.blueAccent,
@@ -204,53 +125,42 @@ class _FilesAndPrescriptionsScreenState
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text(
-              'Official Hospital Files',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text('Official Hospital Files', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            ..._hospitalFiles.map((file) =>
-                _buildVerifiedFileCard(title: file['title']!, date: file['date']!)),
+            ..._hospitalFiles.map((file) => buildVerifiedFileCard(title: file['title']!, date: file['date']!)),
             const Divider(height: 32),
-
-            const Text(
-              'My Uploaded Documents',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text('My Uploaded Documents', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-
-            // StreamBuilder to listen to Firestore patient files collection
             StreamBuilder<QuerySnapshot>(
               stream: patientFilesCollection.orderBy('date', descending: true).snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Text('Error loading documents.');
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                if (snapshot.hasError) return const Text('Error loading documents.');
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                 if (snapshot.data!.docs.isEmpty) {
-                  return const Text(
-                    'You have not uploaded any documents yet.',
-                    style: TextStyle(color: Colors.grey),
+                  return Column(
+                    children: const [
+                      Icon(Icons.folder_off, size: 60, color: Colors.grey),
+                      SizedBox(height: 8),
+                      Text('You have not uploaded any documents yet.', style: TextStyle(color: Colors.grey)),
+                    ],
                   );
                 }
-
                 return Column(
                   children: snapshot.data!.docs.map((doc) {
                     final data = doc.data()! as Map<String, dynamic>;
-                    return _buildPatientFileCard(
+                    return PatientFileCard(
                       docId: doc.id,
                       title: data['title'] ?? 'Untitled',
                       date: (data['date'] as Timestamp).toDate(),
                       status: data['status'] ?? 'pending',
                       downloadUrl: data['downloadUrl'] ?? '',
+                      onDelete: () => _deletePatientFile(doc.id),
                     );
                   }).toList(),
                 );
               },
             ),
-            const SizedBox(height: 80), // Bottom padding so FAB doesn't overlap
+            const SizedBox(height: 80),
           ],
         ),
       ),
