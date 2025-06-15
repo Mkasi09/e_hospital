@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../patients/doctors_patient_history_screen.dart';
+
 class DoctorAppointmentDetailScreen extends StatefulWidget {
   final String docId;
   final Map<String, dynamic> data;
@@ -212,6 +214,36 @@ class _DoctorAppointmentDetailScreenState extends State<DoctorAppointmentDetailS
                       reason,
                       style: const TextStyle(fontSize: 15, color: Colors.black87),
                     ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          final userId = widget.data['userId'];
+                          if (userId != null && userId.toString().isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserDetailsScreen(userId: userId),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('User profile not found.')),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.person),
+                        label: const Text('View Profile'),
+                        style: ElevatedButton.styleFrom(
+
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   ],
                 ),
               ),
