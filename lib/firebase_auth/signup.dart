@@ -161,20 +161,24 @@ class _SignupPageState extends State<SignupPage> {
 
                   TextFormField(
                     controller: idController,
+                    maxLength: 13, // Limits input to 13 characters
+                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: 'ID No.',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       prefixIcon: const Icon(Icons.perm_identity),
+                      counterText: '', // Hides the character count display
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Enter your ID';
+                      if (value.length != 13) return 'ID must be 13 digits';
                       if (!isValidSouthAfricanID(value)) return 'Invalid South African ID';
                       return null;
                     },
-
                   ),
+
                   const SizedBox(height: 20),
 
                   TextFormField(
