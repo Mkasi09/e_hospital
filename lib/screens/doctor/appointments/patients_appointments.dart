@@ -40,7 +40,7 @@ class DoctorAppointments extends StatelessWidget {
     stream: FirebaseFirestore.instance
         .collection('appointments')
         .where('doctor', isEqualTo: doctorName)
-        .orderBy('createdAt', descending: true)
+        //.orderBy('createdAt', descending: true)
         .snapshots(),
     builder: (context, snap) {
     if (snap.connectionState == ConnectionState.waiting) {

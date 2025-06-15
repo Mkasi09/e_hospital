@@ -23,6 +23,7 @@ dependencies:
   firebase_storage: ^12.3.6
   cupertino_icons: ^1.0.6
   firebase_database: ^11.3.7
+  table_calendar: ^3.0.9
   syncfusion_flutter_pdfviewer: ^29.2.10
 
 

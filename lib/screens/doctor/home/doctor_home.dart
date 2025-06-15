@@ -5,6 +5,7 @@ import '../../../widgets/drawer.dart';
 import '../../../widgets/home_tile.dart';
 import '../../patient/my_appointments/appointments.dart';
 import '../patients/Doctors_patient_screen.dart';
+import '../schedule/schedule_screen.dart';
 
 class DoctorsHomepage extends StatelessWidget {
   final String doctorName;
@@ -71,7 +72,12 @@ class DoctorsHomepage extends StatelessWidget {
                     icon: Icons.schedule,
                     label: 'Schedule',
                     onTap: () {
-                      // Navigate to schedule screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ScheduleScreen(), // assuming no arguments needed
+                        ),
+                      );
                     },
                   ),
                   DashboardCard(

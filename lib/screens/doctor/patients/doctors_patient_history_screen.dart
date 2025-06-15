@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 
 import '../../patient/files/patient_file_card.dart';
+
+
 
 class UserDetailsScreen extends StatefulWidget {
   final String userId;
@@ -36,11 +44,64 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       ),
     );
   }
+  Future<void> _uploadFileToPatient(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles();
+
+    if (result == null || result.files.isEmpty) return;
+
+    final filePath = result.files.first.path;
+    final fileName = result.files.first.name;
+
+    if (filePath == null) return;
+
+    final file = File(filePath);
+    final cloudinaryUploadUrl = Uri.parse('https://api.cloudinary.com/v1_1/dzz3iovq5/raw/upload');
+
+    final request = http.MultipartRequest('POST', cloudinaryUploadUrl)
+      ..fields['upload_preset'] = 'ehospital'
+      ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+    try {
+      final response = await request.send();
+      final responseData = await http.Response.fromStream(response);
+      final data = json.decode(responseData.body);
+
+      if (response.statusCode == 200) {
+        final downloadUrl = data['secure_url'];
+
+        await FirebaseFirestore.instance.collection('doctor_uploaded_files').add({
+          'userId': widget.userId,
+          'title': fileName,
+          'downloadUrl': downloadUrl,
+          'status': 'reviewed',
+          'uploadedBy': 'doctor',
+          'date': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Document uploaded successfully to Cloudinary.')),
+        );
+      } else {
+        throw Exception('Upload failed: ${data['error']['message']}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: $e')),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('User Details')),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _uploadFileToPatient(context),
+          backgroundColor: Colors.blueAccent,
+          icon: const Icon(Icons.upload_file),
+          label: const Text('Upload Documents'),
+        ),
       body: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance
             .collection('users')
@@ -186,9 +247,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 const SizedBox(height: 12),
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
-                      .collection('uploaded_files')
+                      .collection('doctor_uploaded_files')
                       .where('userId', isEqualTo: widget.userId)
-                      .where('uploadedBy', isEqualTo: 'doctor')
                       //.orderBy('date', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
@@ -227,7 +287,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           downloadUrl: url,
                           onDelete: () async {
                             await FirebaseFirestore.instance
-                                .collection('uploaded_files')
+                                .collection('doctor_uploaded_files')
                                 .doc(doc.id)
                                 .delete();
 
@@ -248,6 +308,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           );
         },
       ),
+
     );
   }
 }
