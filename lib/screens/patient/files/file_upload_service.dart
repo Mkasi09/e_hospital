@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +10,7 @@ Future<void> uploadFileToCloudinaryAndFirestore({
   required String fileName,
   required CollectionReference patientFilesCollection,
   required BuildContext context,
+
 }) async {
   try {
     final cloudinaryUploadUrl = Uri.parse('https://api.cloudinary.com/v1_1/dzz3iovq5/raw/upload');
@@ -20,6 +22,7 @@ Future<void> uploadFileToCloudinaryAndFirestore({
     final response = await request.send();
     final responseData = await http.Response.fromStream(response);
     final data = json.decode(responseData.body);
+    final currentUser = FirebaseAuth.instance.currentUser;
 
     if (response.statusCode == 200) {
       final downloadUrl = data['secure_url'];
@@ -28,6 +31,7 @@ Future<void> uploadFileToCloudinaryAndFirestore({
         'date': DateTime.now(),
         'status': 'pending',
         'downloadUrl': downloadUrl,
+        'userId': currentUser?.uid
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

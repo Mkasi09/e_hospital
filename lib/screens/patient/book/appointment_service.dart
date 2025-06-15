@@ -44,13 +44,24 @@ class AppointmentService {
 
       final userId = user.uid;
 
-      // Fetch patient name from `users` collection
+      // Fetch patient name
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
       final patientName = userDoc.data()?['fullName'] ?? 'Unknown Patient';
 
-      // Standardize time format
-      final parts = selectedTime!.split(':');
+      // 🔍 Fetch doctorId based on selectedDoctor name
+      final doctorSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('name', isEqualTo: selectedDoctor) // or 'name', depending on your field
+          .limit(1)
+          .get();
 
+      if (doctorSnapshot.docs.isEmpty) throw 'Doctor not found';
+
+      final doctorDoc = doctorSnapshot.docs.first;
+      final doctorId = doctorDoc.id;
+
+      // Construct date with time
+      final parts = selectedTime!.split(':');
       final appointmentDateTime = DateTime(
         selectedDate!.year,
         selectedDate.month,
@@ -63,6 +74,7 @@ class AppointmentService {
       await _appointmentsRef.add({
         'hospital': selectedHospital,
         'doctor': selectedDoctor,
+        'doctorId': doctorId,
         'date': Timestamp.fromDate(appointmentDateTime),
         'time': selectedTime,
         'reason': reasonController.text.trim(),
@@ -83,6 +95,7 @@ class AppointmentService {
       return false;
     }
   }
+
 
   static Future<bool> rescheduleAppointment({
     required BuildContext context,
