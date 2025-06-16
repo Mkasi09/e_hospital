@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DoctorDropdown extends StatefulWidget {
   final String? hospital;
-  final Map<String, String>? selectedDoctor; // {name: "Dr. A", specialty: "Cardiology"}
+  final Map<String, String>? selectedDoctor; // {id: "...", name: "Dr. A", specialty: "Cardiology"}
   final Function(Map<String, String>?) onDoctorSelected;
 
   const DoctorDropdown({
@@ -36,7 +36,8 @@ class _DoctorDropdownState extends State<DoctorDropdown> {
           );
         }
 
-        if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
+        if (snapshot.hasError || snapshot.data == null ||
+            snapshot.data!.isEmpty) {
           return const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
             child: Text('No doctors found for this hospital'),
@@ -51,7 +52,10 @@ class _DoctorDropdownState extends State<DoctorDropdown> {
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(10),
-            color: Theme.of(context).colorScheme.surface,
+            color: Theme
+                .of(context)
+                .colorScheme
+                .surface,
           ),
           child: GestureDetector(
             onTap: () => _showDoctorPicker(context),
@@ -63,7 +67,8 @@ class _DoctorDropdownState extends State<DoctorDropdown> {
                     shape: BoxShape.circle,
                   ),
                   padding: const EdgeInsets.all(8),
-                  child: const Icon(Icons.medical_services, color: Colors.blueAccent),
+                  child: const Icon(
+                      Icons.medical_services, color: Colors.blueAccent),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -80,7 +85,8 @@ class _DoctorDropdownState extends State<DoctorDropdown> {
                       const SizedBox(height: 2),
                       Text(
                         widget.selectedDoctor != null
-                            ? '${widget.selectedDoctor!['name']} - ${widget.selectedDoctor!['specialty']}'
+                            ? '${widget.selectedDoctor!['name']} - ${widget
+                            .selectedDoctor!['specialty']}'
                             : 'Tap to choose a doctor',
                         style: const TextStyle(
                           fontSize: 16,
@@ -114,7 +120,8 @@ class _DoctorDropdownState extends State<DoctorDropdown> {
                 filteredDoctors = _allDoctors.where((doctor) {
                   final name = doctor['name']!.toLowerCase();
                   final specialty = doctor['specialty']!.toLowerCase();
-                  return name.contains(query.toLowerCase()) || specialty.contains(query.toLowerCase());
+                  return name.contains(query.toLowerCase()) ||
+                      specialty.contains(query.toLowerCase());
                 }).toList();
               });
             }
@@ -123,7 +130,10 @@ class _DoctorDropdownState extends State<DoctorDropdown> {
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.7,
+                  height: MediaQuery
+                      .of(context)
+                      .size
+                      .height * 0.7,
                   child: Column(
                     children: [
                       TextField(
@@ -172,17 +182,19 @@ class _DoctorDropdownState extends State<DoctorDropdown> {
         .where('hospitalName', isEqualTo: hospitalName)
         .get();
 
-    return querySnapshot.docs
-        .map((doc) {
+    return querySnapshot.docs.map((doc) {
       final data = doc.data();
-      final name = data['name'] as String?;
-      final specialty = data['specialty'] as String?;
+      final id = doc.id;
+      final name = data['name'];
+      final specialty = data['specialty'];
       if (name != null) {
-        return {'name': name, 'specialty': specialty ?? 'Unknown'};
+        return {
+          'id': id.toString(),
+          'name': name.toString(),
+          'specialty': (specialty ?? 'Unknown').toString(),
+        };
       }
       return null;
-    })
-        .whereType<Map<String, String>>()
-        .toList();
+    }).whereType<Map<String, String>>().toList();
   }
 }

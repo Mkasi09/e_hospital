@@ -2,24 +2,33 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class AppointmentService {
   static final CollectionReference _appointmentsRef =
   FirebaseFirestore.instance.collection('appointments');
 
-  static Future<List<String>> fetchBookedSlots(String doctor, DateTime date) async {
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-
-    final snapshot = await _appointmentsRef
-        .where('doctor', isEqualTo: doctor)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+  static Future<List<String>> fetchBookedSlots(String doctorId, DateTime selectedDate) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('appointments')
+        .where('doctorId', isEqualTo: doctorId)
         .get();
 
-    return snapshot.docs.map((doc) => doc['time'] as String).toList();
+    final bookedTimes = <String>[];
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final Timestamp dateTimestamp = data['date'];
+      final String timeString = data['time'];
+
+      final appointmentDate = dateTimestamp.toDate();
+      if (DateUtils.isSameDay(appointmentDate, selectedDate)) {
+        final parts = timeString.split(':');
+        final hour = parts[0].padLeft(2, '0');
+        final minute = parts[1].padLeft(2, '0');
+        bookedTimes.add('$hour:$minute');
+      }
+    }
+
+    return bookedTimes;
   }
 
   static Future<bool> submitAppointment({
@@ -44,14 +53,12 @@ class AppointmentService {
 
       final userId = user.uid;
 
-      // Fetch patient name
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
       final patientName = userDoc.data()?['fullName'] ?? 'Unknown Patient';
 
-      // 🔍 Fetch doctorId based on selectedDoctor name
       final doctorSnapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('name', isEqualTo: selectedDoctor) // or 'name', depending on your field
+          .where('name', isEqualTo: selectedDoctor)
           .limit(1)
           .get();
 
@@ -60,7 +67,6 @@ class AppointmentService {
       final doctorDoc = doctorSnapshot.docs.first;
       final doctorId = doctorDoc.id;
 
-      // Construct date with time
       final parts = selectedTime!.split(':');
       final appointmentDateTime = DateTime(
         selectedDate!.year,
@@ -70,7 +76,6 @@ class AppointmentService {
         int.parse(parts[1]),
       );
 
-      // Create appointment
       await _appointmentsRef.add({
         'hospital': selectedHospital,
         'doctor': selectedDoctor,
@@ -96,7 +101,6 @@ class AppointmentService {
     }
   }
 
-
   static Future<bool> rescheduleAppointment({
     required BuildContext context,
     required String appointmentId,
@@ -116,7 +120,6 @@ class AppointmentService {
         int.parse(parts[1]),
       );
 
-      // Check for conflicts
       final startOfDay = DateTime(newDate.year, newDate.month, newDate.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
 

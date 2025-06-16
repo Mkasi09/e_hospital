@@ -138,21 +138,15 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
               DoctorDropdown(
                 hospital: _selectedHospital,
                 selectedDoctor: _selectedDoctor,
-                onDoctorSelected: (doctor) async {
+                onDoctorSelected: (doctor) {
                   setState(() {
                     _selectedDoctor = doctor;
                   });
-                  if (doctor != null && _selectedDate != null) {
-                    final slots = await AppointmentService.fetchBookedSlots(
-                      doctor['name']!,
-                      _selectedDate!,
-                    );
-                    setState(() {
-                      _bookedSlots = slots;
-                    });
-                  }
                 },
               ),
+
+
+
               const SizedBox(height: 16),
               DatePickerTile(
                 selectedDate: _selectedDate,
@@ -172,8 +166,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                   selectedDate: _selectedDate!,
                   bookedSlots: _bookedSlots,
                   selectedTime: _selectedTime,
-                  onSlotSelected:
-                      (slot) => setState(() => _selectedTime = slot),
+                  onSlotSelected: (slot) => setState(() => _selectedTime = slot),
                 ),
               const SizedBox(height: 16),
               ReasonForVisitField(controller: _reasonController),

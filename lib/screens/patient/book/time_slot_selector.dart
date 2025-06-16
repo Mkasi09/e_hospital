@@ -26,7 +26,6 @@ class TimeSlotSelector extends StatelessWidget {
       return TimeOfDay(hour: hour, minute: minute);
     }).where((timeOfDay) {
       if (!isToday) return true;
-
       final slotDateTime = DateTime(
         selectedDate.year,
         selectedDate.month,
@@ -37,7 +36,7 @@ class TimeSlotSelector extends StatelessWidget {
       return slotDateTime.isAfter(now);
     }).map((tod) {
       final dt = DateTime(0, 1, 1, tod.hour, tod.minute);
-      return DateFormat('HH:mm').format(dt); // ← 24-hour format
+      return DateFormat('HH:mm').format(dt);
     }).toList();
 
     return Column(
