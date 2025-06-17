@@ -3,6 +3,8 @@ import 'package:e_hospital/screens/profile/profile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../screens/doctor/doctor_settings/doctor_settings_screen.dart';
+
 class PatientDrawer extends StatelessWidget {
   const PatientDrawer({super.key});
 
@@ -74,7 +76,12 @@ class PatientDrawer extends StatelessWidget {
                     _buildDrawerCard(
                       icon: Icons.settings,
                       label: 'Settings',
-                      onTap: () => Navigator.pushNamed(context, '/settings'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                        );
+                      },
                     ),
                     _buildDrawerCard(
                        icon: Icons.description,
