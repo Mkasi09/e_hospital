@@ -17,6 +17,14 @@ class DoctorsHomepage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Doctor Dashboard'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications),
+            onPressed: () {
+              // Handle notification icon tap
+            },
+          ),
+        ],
       ),
       drawer: const PatientDrawer(),
       body: Padding(
