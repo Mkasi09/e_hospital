@@ -125,7 +125,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-             HospitalDropdown(
+             /*HospitalDropdown(
                 selectedHospital: _selectedHospital,
                 onHospitalSelected: (hospital, doctors) {
                   setState(() {
@@ -133,7 +133,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                     _selectedDoctor = null;
                   });
                 },
-              ),
+              ),*/
               const SizedBox(height: 16),
               DoctorDropdown(
                 hospital: _selectedHospital,

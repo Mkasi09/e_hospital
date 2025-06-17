@@ -1,4 +1,5 @@
 import 'package:e_hospital/screens/doctor/appointments/patients_appointments.dart';
+import 'package:e_hospital/screens/doctor/chats/doctor_inbox.dart';
 import 'package:flutter/material.dart';
 
 import '../../../widgets/drawer.dart';
@@ -92,7 +93,12 @@ class DoctorsHomepage extends StatelessWidget {
                     icon: Icons.chat,
                     label: 'Messages',
                     onTap: () {
-                      // Navigate to messages screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const InboxScreen(), // assuming no arguments needed
+                        ),
+                      );
                     },
                   ),
                 ],
