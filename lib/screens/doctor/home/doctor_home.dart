@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../widgets/drawer.dart';
 import '../../../widgets/home_tile.dart';
 import '../../patient/my_appointments/appointments.dart';
+import '../doctors_notifications/doctors_notification_screen.dart';
 import '../patients/Doctors_patient_screen.dart';
 import '../schedule/schedule_screen.dart';
 
@@ -22,7 +23,10 @@ class DoctorsHomepage extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.notifications),
             onPressed: () {
-              // Handle notification icon tap
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationScreen()),
+              );
             },
           ),
         ],
