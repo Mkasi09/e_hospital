@@ -77,7 +77,7 @@ class PatientDrawer extends StatelessWidget {
                       onTap: () => Navigator.pushNamed(context, '/settings'),
                     ),
                     _buildDrawerCard(
-                      icon: Icons.description,
+                       icon: Icons.description,
                       label: 'Terms & Conditions',
                       onTap: () => Navigator.pushNamed(context, '/terms'),
                     ),
