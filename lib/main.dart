@@ -1,5 +1,6 @@
 import 'package:e_hospital/firebase_auth/set_new_password.dart';
 import 'package:e_hospital/firebase_auth/signup.dart';
+import 'package:e_hospital/screens/doctor/doctors_notifications/reminder.dart';
 import 'package:e_hospital/screens/patient/home/home.dart';
 import 'package:flutter/material.dart';
 import 'firebase_auth/AuthenticationWrapper.dart';
@@ -12,6 +13,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await initializeNotifications(); // ✅ Initialize local notifications
   runApp(const MyApp());
 }
 

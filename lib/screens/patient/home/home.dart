@@ -1,7 +1,9 @@
 import 'package:e_hospital/screens/patient/chat/chats.dart';
 import 'package:e_hospital/screens/patient/my_appointments/appointments.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../doctor/doctors_notifications/doctors_notification_screen.dart';
 import '../book/book_appointment.dart';
 import '../files/files_and_prescriptions.dart';
 import '../../../widgets/drawer.dart';
@@ -26,6 +28,17 @@ class PatientHomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Patient Dashboard'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) =>  NotificationScreen(userId: FirebaseAuth.instance.currentUser!.uid)),
+              );
+            },
+          ),
+        ],
       ),
       drawer: const PatientDrawer(),
       body: Padding(

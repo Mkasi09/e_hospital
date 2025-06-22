@@ -1,15 +1,18 @@
 import 'package:e_hospital/screens/doctor/appointments/patients_appointments.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../widgets/drawer.dart';
 import '../../../widgets/home_tile.dart';
 import '../../patient/my_appointments/appointments.dart';
 import '../doctors_notifications/doctors_notification_screen.dart';
+import '../doctors_notifications/notification_bell.dart';
 import '../patients/Doctors_patient_screen.dart';
 import '../schedule/schedule_screen.dart';
 
 class DoctorsHomepage extends StatelessWidget {
   final String doctorName;
+
 
   const DoctorsHomepage({super.key, this.doctorName = 'Dr. Smith'});
 
@@ -19,15 +22,16 @@ class DoctorsHomepage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Doctor Dashboard'),
         actions: [
-          IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed: () {
+          NotificationBell(
+            userId: FirebaseAuth.instance.currentUser!.uid,
+            onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                MaterialPageRoute(builder: (context) => NotificationScreen(userId: FirebaseAuth.instance.currentUser!.uid)),
               );
             },
           ),
+
         ],
       ),
       drawer: const PatientDrawer(),
