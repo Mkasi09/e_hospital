@@ -37,6 +37,7 @@ class DoctorsListScreen extends StatelessWidget {
           chatId: chatId,
           currentUserId: currentUserId,
           peerName: doctorName,
+          peerId: doctorId,
         ),
       ),
     );

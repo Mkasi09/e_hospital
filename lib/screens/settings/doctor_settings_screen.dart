@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+
+import 'dark_mode.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -57,8 +60,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           SwitchListTile(
             title: const Text('Dark Mode'),
-            value: _darkModeEnabled,
-            onChanged: (val) => setState(() => _darkModeEnabled = val),
+            value: Provider.of<ThemeNotifier>(context).themeMode == ThemeMode.dark,
+            onChanged: (val) {
+              Provider.of<ThemeNotifier>(context, listen: false).toggleTheme(val);
+              setState(() {
+                _darkModeEnabled = val;
+              });
+            },
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),

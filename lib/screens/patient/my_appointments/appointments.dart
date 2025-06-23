@@ -77,16 +77,16 @@ class AppointmentsScreen extends StatelessWidget {
                   return await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Delete Appointment'),
-                      content: const Text('Are you sure you want to delete this appointment?'),
+                      title: const Text('Cancel Appointment'),
+                      content: const Text('Are you sure you want to cancel this appointment?'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
+                          child: const Text('No'),
                         ),
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                          child: const Text('Yes', style: TextStyle(color: Colors.red)),
                         ),
                       ],
                     ),
@@ -117,19 +117,6 @@ class AppointmentsScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Colors.blueAccent.shade100,
-                            child: Text(
-                              (data['doctor'] != null && data['doctor'].isNotEmpty)
-                                  ? data['doctor'][0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueAccent),
-                            ),
-                          ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
