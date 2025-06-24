@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Add this at the top
 
 class NotificationScreen extends StatefulWidget {
-  final String userId; // Pass logged-in user ID
 
-  const NotificationScreen({super.key, required this.userId});
+
+  const NotificationScreen({super.key});
 
   @override
   State<NotificationScreen> createState() => _NotificationScreenState();
@@ -13,6 +14,7 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   String selectedFilter = 'all'; // 'all', 'doctor_appointment', etc.
+  final String userId = FirebaseAuth.instance.currentUser!.uid;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +31,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('notifications')
-            .where('userId', isEqualTo: widget.userId)
+            .where('userId', isEqualTo: userId)
             //.orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -180,7 +182,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void _markAllAsRead() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('notifications')
-        .where('userId', isEqualTo: widget.userId)
+        .where('userId', isEqualTo: userId)
         .where('isRead', isEqualTo: false)
         .get();
 
