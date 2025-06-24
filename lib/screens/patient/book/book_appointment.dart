@@ -143,7 +143,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                     _selectedDoctor = doctor;
                   });
                 },
-              ),
+              ),*/
 
 
 

@@ -1,8 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-class NotificationScreen extends StatelessWidget {
-  const NotificationScreen({super.key});
+class NotificationScreen extends StatefulWidget {
+  final String userId; // Pass logged-in user ID
+
+  const NotificationScreen({super.key, required this.userId});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  String selectedFilter = 'all'; // 'all', 'doctor_appointment', etc.
 
   @override
   Widget build(BuildContext context) {
@@ -12,90 +22,74 @@ class NotificationScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // Implement filter functionality
-              _showFilterBottomSheet(context);
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // Implement more options
-            },
+            onPressed: () => _showFilterBottomSheet(context),
           ),
         ],
       ),
-      body: ListView(
-        children: [
-          _buildDateHeader('Today'),
-          _buildNotificationItem(
-            icon: Icons.calendar_today,
-            iconColor: Colors.blue,
-            title: 'New Appointment Scheduled',
-            subtitle: 'Dr. Smith - Cardiology, 10:30 AM',
-            time: '2 hours ago',
-            isUnread: true,
-          ),
-          _buildNotificationItem(
-            icon: Icons.message,
-            iconColor: Colors.green,
-            title: 'New Message from Patient',
-            subtitle: 'John Doe: "I have a question about my prescription"',
-            time: '3 hours ago',
-            isUnread: true,
-          ),
-          _buildNotificationItem(
-            icon: Icons.person_add,
-            iconColor: Colors.purple,
-            title: 'New Patient Registered',
-            subtitle: 'Sarah Johnson - Registered for annual checkup',
-            time: '5 hours ago',
-            isUnread: false,
-          ),
-          _buildDateHeader('Yesterday'),
-          _buildNotificationItem(
-            icon: Icons.schedule,
-            iconColor: Colors.orange,
-            title: 'Schedule Change',
-            subtitle: 'Your Wednesday shift has been extended by 1 hour',
-            time: 'Yesterday, 4:30 PM',
-            isUnread: false,
-          ),
-          _buildNotificationItem(
-            icon: Icons.calendar_today,
-            iconColor: Colors.blue,
-            title: 'Appointment Reminder',
-            subtitle: 'Mrs. Anderson - Pediatrics, 9:00 AM tomorrow',
-            time: 'Yesterday, 2:15 PM',
-            isUnread: false,
-          ),
-          _buildNotificationItem(
-            icon: Icons.medical_services,
-            iconColor: Colors.red,
-            title: 'Lab Results Available',
-            subtitle: 'Blood test results for patient Michael Brown',
-            time: 'Yesterday, 11:20 AM',
-            isUnread: false,
-          ),
-          _buildDateHeader('This Week'),
-          _buildNotificationItem(
-            icon: Icons.event_busy,
-            iconColor: Colors.amber,
-            title: 'Appointment Cancelled',
-            subtitle: 'Robert Wilson cancelled his 3:00 PM appointment',
-            time: 'Monday, 1:45 PM',
-            isUnread: false,
-          ),
-        ],
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('notifications')
+            .where('userId', isEqualTo: widget.userId)
+            //.orderBy('timestamp', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+          final docs = snapshot.data!.docs;
+
+          // Filter by type if selected
+          final notifications = docs.where((doc) {
+            if (selectedFilter == 'all') return true;
+            return doc['type'] == selectedFilter;
+          }).toList();
+
+          if (notifications.isEmpty) {
+            return const Center(child: Text('No notifications found.'));
+          }
+
+          // Group notifications by date headers
+          List<Widget> grouped = [];
+          String? lastDateGroup;
+
+          for (var doc in notifications) {
+            final data = doc.data() as Map<String, dynamic>;
+            final timestamp = (data['timestamp'] as Timestamp).toDate();
+            final dateGroup = _getDateGroup(timestamp);
+
+            if (dateGroup != lastDateGroup) {
+              grouped.add(_buildDateHeader(dateGroup));
+              lastDateGroup = dateGroup;
+            }
+
+            grouped.add(_buildNotificationItem(
+              id: doc.id,
+              title: data['title'],
+              subtitle: data['body'],
+              timestamp: timestamp,
+              isUnread: !(data['isRead'] ?? false),
+              icon: Icons.notifications,
+            ));
+          }
+
+          return ListView(children: grouped);
+        },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Mark all as read functionality
-        },
+        onPressed: _markAllAsRead,
         child: const Icon(Icons.done_all),
         tooltip: 'Mark all as read',
       ),
     );
+  }
+
+  String _getDateGroup(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dateToCheck = DateTime(date.year, date.month, date.day);
+
+    if (dateToCheck == today) return 'Today';
+    if (dateToCheck == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    return DateFormat('EEEE, MMM d').format(date);
   }
 
   Widget _buildDateHeader(String date) {
@@ -103,120 +97,129 @@ class NotificationScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Text(
         date,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey,
-        ),
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
       ),
     );
   }
 
   Widget _buildNotificationItem({
-    required IconData icon,
-    required Color iconColor,
+    required String id,
     required String title,
     required String subtitle,
-    required String time,
+    required DateTime timestamp,
     required bool isUnread,
+    required IconData icon,
   }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      elevation: isUnread ? 2.0 : 0.5,
-      color: isUnread ? Colors.blue.shade50 : Colors.white,
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8.0),
-          decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.2),
-            shape: BoxShape.circle,
+    return Dismissible(
+      key: Key(id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        color: Colors.red,
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      onDismissed: (_) async {
+        await FirebaseFirestore.instance.collection('notifications').doc(id).delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification deleted')),
+        );
+      },
+      child: Card(
+        color: isUnread ? Colors.blue.shade50 : Colors.white,
+        margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Colors.blue.shade100,
+            child: Icon(icon, color: Colors.blue),
           ),
-          child: Icon(icon, color: iconColor),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+          title: Text(title, style: TextStyle(fontWeight: isUnread ? FontWeight.bold : FontWeight.normal)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(subtitle),
+              const SizedBox(height: 4),
+              Text(
+                DateFormat('MMM d, yyyy – HH:mm').format(timestamp),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
           ),
+          trailing: PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'mark_unread') {
+                await FirebaseFirestore.instance
+                    .collection('notifications')
+                    .doc(id)
+                    .update({'isRead': false});
+              }
+            },
+            itemBuilder: (context) => [
+              if (!isUnread)
+                const PopupMenuItem<String>(
+                  value: 'mark_unread',
+                  child: Text('Mark as unread'),
+                ),
+            ],
+          ),
+          onTap: () => _markAsRead(id),
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(subtitle),
-            const SizedBox(height: 4),
-            Text(
-              time,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        trailing: isUnread
-            ? const CircleAvatar(
-          radius: 4,
-          backgroundColor: Colors.blue,
-        )
-            : null,
-        onTap: () {
-          // Handle notification tap
-        },
       ),
     );
+  }
+
+
+
+  void _markAsRead(String docId) async {
+    await FirebaseFirestore.instance
+        .collection('notifications')
+        .doc(docId)
+        .update({'isRead': true});
+  }
+
+  void _markAllAsRead() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: widget.userId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    for (var doc in snapshot.docs) {
+      await doc.reference.update({'isRead': true});
+    }
   }
 
   void _showFilterBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Filter Notifications',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _buildFilterOption('All Notifications', true),
-              _buildFilterOption('Appointments', false),
-              _buildFilterOption('Messages', false),
-              _buildFilterOption('Patients', false),
-              _buildFilterOption('Schedule', false),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Apply'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFilterOption(String title, bool isSelected) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Checkbox(
-            value: isSelected,
-            onChanged: (value) {},
+          ListTile(
+            title: const Text('All Notifications'),
+            onTap: () => _setFilter('all'),
           ),
-          Text(title),
+          ListTile(
+            title: const Text('Doctor Appointments'),
+            onTap: () => _setFilter('doctor_appointment'),
+          ),
+          ListTile(
+            title: const Text('Messages'),
+            onTap: () => _setFilter('message'),
+          ),
+          ListTile(
+            title: const Text('Patients'),
+            onTap: () => _setFilter('patient'),
+          ),
         ],
       ),
     );
+  }
+
+  void _setFilter(String filter) {
+    Navigator.pop(context);
+    setState(() {
+      selectedFilter = filter;
+    });
   }
 }
