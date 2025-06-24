@@ -1,117 +1,98 @@
-import 'package:e_hospital/widgets/drawer.dart';
 import 'package:flutter/material.dart';
 
-import 'doctors/doctors.dart';
-
-class AdminScreen extends StatelessWidget {
-  const AdminScreen({super.key});
+class PatientDrawer extends StatelessWidget {
+  const PatientDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-      ),
-      drawer: PatientDrawer(),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 20,
-          mainAxisSpacing: 20,
+    final String userName = "Nikita M.";
+    final String profileImageUrl = "https://example.com/p2.png";
+
+    return Drawer(
+      child: SafeArea(
+        child: Column(
           children: [
-            _buildCard(
-              context,
-              title: 'Doctors',
-              icon: Icons.medical_services,
-              color: Colors.teal,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const DoctorsScreen()),
-                );
-              },
-            ),
-            _buildCard(
-              context,
-              title: 'Patients',
-              icon: Icons.people,
-              color: Colors.blue,
-              onTap: () {
-                Navigator.pushNamed(context, '/managePatients');
-              },
-            ),
-            _buildCard(
-              context,
-              title: 'Appointments',
-              icon: Icons.calendar_today,
+            Container(
               color: Colors.deepPurple,
+              padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+              width: double.infinity,
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 35,
+                    backgroundImage: NetworkImage(profileImageUrl),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Text(
+                      userName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildDrawerItem(
+              icon: Icons.person_outline,
+              title: 'Profile',
               onTap: () {
-                Navigator.pushNamed(context, '/appointments');
+                Navigator.pushNamed(context, '/patientProfile');
               },
             ),
-            _buildCard(
-              context,
-              title: 'Reports',
-              icon: Icons.insert_chart,
-              color: Colors.orange,
-              onTap: () {
-                Navigator.pushNamed(context, '/reports');
-              },
-            ),
-            _buildCard(
-              context,
+            _buildDrawerItem(
+              icon: Icons.settings_outlined,
               title: 'Settings',
-              icon: Icons.settings,
-              color: Colors.grey,
               onTap: () {
-                Navigator.pushNamed(context, '/adminSettings');
+                Navigator.pushNamed(context, '/settings');
               },
             ),
-            _buildCard(
-              context,
-              title: 'Logout',
-              icon: Icons.logout,
-              color: Colors.red,
+            _buildDrawerItem(
+              icon: Icons.description_outlined,
+              title: 'Terms & Conditions',
               onTap: () {
-                // Add your logout logic
+                Navigator.pushNamed(context, '/terms');
+              },
+            ),
+            const Spacer(),
+            Divider(),
+            _buildDrawerItem(
+              icon: Icons.logout,
+              title: 'Logout',
+              onTap: () {
+                // Example: FirebaseAuth.instance.signOut();
                 Navigator.pushReplacementNamed(context, '/login');
               },
+              iconColor: Colors.red,
+              textColor: Colors.red,
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCard(BuildContext context,
-      {required String title,
-        required IconData icon,
-        required Color color,
-        required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        color: color.withOpacity(0.8),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 50, color: Colors.white),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
-              ),
-            ],
-          ),
-        ),
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color iconColor = Colors.black87,
+    Color textColor = Colors.black87,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor, size: 26),
+      title: Text(
+        title,
+        style: TextStyle(fontSize: 16, color: textColor),
       ),
+      onTap: onTap,
+      horizontalTitleGap: 0,
     );
   }
 }

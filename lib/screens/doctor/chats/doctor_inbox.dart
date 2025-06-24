@@ -1,10 +1,10 @@
+import 'package:e_hospital/screens/doctor/chats/my_patients_list.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../patient/chat/chats.dart';
 
-import 'chats.dart';
-import 'doctors_list.dart';
 
 class InboxScreen extends StatelessWidget {
   const InboxScreen({super.key});
@@ -152,11 +152,11 @@ class InboxScreen extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const DoctorsListScreen()),
+            MaterialPageRoute(builder: (_) => const MyPatientsScreen()),
           );
         },
         icon: const Icon(Icons.person_search),
-        label: const Text('Find Doctor'),
+        label: const Text('My Patients'),
       ),
     );
   }

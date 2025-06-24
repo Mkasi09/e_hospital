@@ -45,7 +45,29 @@ class AppointmentDetailScreen extends StatelessWidget {
         return Colors.orange;
     }
   }
+  /*Future<void> _updateStatus(String status) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('appointments')
+          .doc(widget.docId)
+          .update({'status': status});
 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Status updated to "$status"')),
+        );
+        setState(() {
+          selectedStatus = status;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating status: $e')),
+        );
+      }
+    }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +218,7 @@ class AppointmentDetailScreen extends StatelessWidget {
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Cancel'),
+                              child: const Text('No'),
                             ),
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(true),
@@ -212,8 +234,8 @@ class AppointmentDetailScreen extends StatelessWidget {
                         await _deleteAppointment(context);
                       }
                     },
-                    icon: const Icon(Icons.delete),
-                    label: const Text('Delete'),
+                    icon: const Icon(Icons.cancel),
+                    label: const Text('Cancel'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: Colors.red[700],

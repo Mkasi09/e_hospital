@@ -111,9 +111,9 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       return Card(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 3,
-                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        margin: const EdgeInsets.symmetric(vertical: 4),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                           leading: CircleAvatar(
                             backgroundColor: Colors.blueAccent,
                             child: const Icon(Icons.person, color: Colors.white),
@@ -123,7 +123,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           subtitle: Text(
-                            'Email: ${data['email'] ?? 'N/A'}\nID: ${data['id'] ?? 'N/A'}',
+                            'Email: ${data['email'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 13, color: Colors.black87),
                           ),
                           trailing: const Icon(Icons.arrow_forward_ios, size: 18),
