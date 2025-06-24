@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Add this at the top
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../appointments/doctors_detailed_appointment.dart'; // Add this at the top
 
 class NotificationScreen extends StatefulWidget {
 
@@ -62,7 +64,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
               grouped.add(_buildDateHeader(dateGroup));
               lastDateGroup = dateGroup;
             }
-
             grouped.add(_buildNotificationItem(
               id: doc.id,
               title: data['title'],
@@ -70,7 +71,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
               timestamp: timestamp,
               isUnread: !(data['isRead'] ?? false),
               icon: Icons.notifications,
+              fullData: data, // ✅ This is required
             ));
+
           }
 
           return ListView(children: grouped);
@@ -111,6 +114,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     required DateTime timestamp,
     required bool isUnread,
     required IconData icon,
+    required Map<String, dynamic> fullData,
   }) {
     return Dismissible(
       key: Key(id),
@@ -164,7 +168,44 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ),
             ],
           ),
-          onTap: () => _markAsRead(id),
+            onTap: () async {
+              await _markAsRead(id);
+
+              final appointmentId = fullData['appointmentId'] ?? fullData['additionalData']?['appointmentId'];
+
+              if (appointmentId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No appointment ID found in notification')),
+                );
+                return;
+              }
+
+              final appointmentDoc = await FirebaseFirestore.instance
+                  .collection('appointments')
+                  .doc(appointmentId)
+                  .get();
+
+              if (appointmentDoc.exists) {
+                final appointmentData = appointmentDoc.data()!;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DoctorAppointmentDetailScreen(
+                      docId: appointmentId,
+                      data: appointmentData,
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Appointment not found')),
+                );
+              }
+            }
+
+
+
+
         ),
       ),
     );
@@ -172,12 +213,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
 
 
-  void _markAsRead(String docId) async {
+
+  Future<void> _markAsRead(String docId) async {
     await FirebaseFirestore.instance
         .collection('notifications')
         .doc(docId)
         .update({'isRead': true});
   }
+
 
   void _markAllAsRead() async {
     final snapshot = await FirebaseFirestore.instance

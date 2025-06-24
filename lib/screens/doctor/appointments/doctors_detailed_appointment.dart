@@ -7,6 +7,7 @@ class DoctorAppointmentDetailScreen extends StatefulWidget {
   final String docId;
   final Map<String, dynamic> data;
 
+
   const DoctorAppointmentDetailScreen({
     super.key,
     required this.docId,
@@ -19,6 +20,7 @@ class DoctorAppointmentDetailScreen extends StatefulWidget {
 
 class _DoctorAppointmentDetailScreenState extends State<DoctorAppointmentDetailScreen> {
   late String selectedStatus;
+
 
   @override
   void initState() {
