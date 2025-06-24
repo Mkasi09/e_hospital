@@ -30,7 +30,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         stream: FirebaseFirestore.instance
             .collection('notifications')
             .where('userId', isEqualTo: widget.userId)
-            //.orderBy('timestamp', descending: true)
+        //.orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
