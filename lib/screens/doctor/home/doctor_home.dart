@@ -27,7 +27,7 @@ class DoctorsHomepage extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => NotificationScreen(userId: FirebaseAuth.instance.currentUser!.uid)),
+                MaterialPageRoute(builder: (context) => NotificationScreen( )),
               );
             },
           ),
