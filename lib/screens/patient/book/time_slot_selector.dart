@@ -20,6 +20,7 @@ class TimeSlotSelector extends StatelessWidget {
     final now = DateTime.now();
     final isToday = DateUtils.isSameDay(now, selectedDate);
 
+    // Generate time slots from 09:00 to 18:30 every 30 minutes
     final timeSlots = List.generate(20, (index) {
       final hour = 9 + (index ~/ 2);
       final minute = (index % 2) * 30;
@@ -66,18 +67,19 @@ class TimeSlotSelector extends StatelessWidget {
                     slot,
                     style: TextStyle(
                       color: isBooked
-                          ? Colors.grey
+                          ? Colors.grey.shade600
                           : isSelected
                           ? Colors.white
                           : Colors.black,
+                      decoration:
+                      isBooked ? TextDecoration.lineThrough : null,
                     ),
                   ),
                   selected: isSelected,
                   onSelected: isBooked ? null : (_) => onSlotSelected(slot),
                   selectedColor: Colors.blueAccent,
-                  backgroundColor: isBooked
-                      ? Colors.grey.shade300
-                      : Colors.grey.shade100,
+                  disabledColor: Colors.grey.shade300,
+                  backgroundColor: Colors.grey.shade100,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

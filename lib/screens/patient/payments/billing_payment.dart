@@ -20,9 +20,11 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Billing & Payment'),
+        title: const Text('Billing & Payment', style: TextStyle(
+          color: Colors.white
+        )),
         centerTitle: true,
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.blueAccent,
         elevation: 2,
       ),
       body: Padding(
@@ -34,7 +36,7 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
               'Your Billing Summary',
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.deepPurple.shade700,
+                color: Colors.blueAccent.shade100,
                 letterSpacing: 0.5,
               ),
             ),
@@ -129,7 +131,7 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                                 color: data['status'] == 'Paid' ? Colors.green : Colors.red,
                               ),
                               controlAffinity: ListTileControlAffinity.leading,
-                              activeColor: Colors.deepPurple,
+                              activeColor: Colors.blueAccent,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -142,9 +144,9 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Colors.deepPurple.shade50,
+                          color: Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.deepPurple.shade200),
+                          border: Border.all(color: Colors.blue.shade200),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -156,7 +158,7 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                             Text(
                               'R${totalSelected.toStringAsFixed(2)}',
                               style: textTheme.titleLarge?.copyWith(
-                                color: Colors.deepPurple,
+                                color: Colors.blueAccent,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -177,11 +179,11 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                           icon: const Icon(Icons.payment),
                           label: const Padding(
                             padding: EdgeInsets.symmetric(vertical: 14),
-                            child: Text('Pay Selected', style: TextStyle(fontSize: 16)),
+                            child: Text('Pay Selected', style: TextStyle(fontSize: 16, color: Colors.white)),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.deepPurple,
-                            disabledBackgroundColor: Colors.deepPurple.shade100,
+                            backgroundColor: Colors.blueAccent,
+                            disabledBackgroundColor: Colors.blue.shade50  ,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
