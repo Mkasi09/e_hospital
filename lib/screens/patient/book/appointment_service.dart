@@ -75,6 +75,22 @@ class AppointmentService {
 
       final userId = user.uid;
 
+      // Check outstanding balance first
+      double outstanding = await fetchOutstandingBalance(userId);
+
+      if (outstanding > 100) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You have an outstanding balance of R${outstanding.toStringAsFixed(2)}. '
+                  'Please pay it before booking a new appointment.',
+            ),
+          ),
+        );
+        return false;
+      }
+
+      // Proceed with booking
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
       final patientName = userDoc.data()?['fullName'] ?? 'Unknown Patient';
 
@@ -97,6 +113,26 @@ class AppointmentService {
         int.parse(parts[0]),
         int.parse(parts[1]),
       );
+// Check if the selected slot is already booked
+      final startOfDay = DateTime(selectedDate!.year, selectedDate.month, selectedDate.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      final conflictSnapshot = await _appointmentsRef
+          .where('doctorId', isEqualTo: doctorId)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+          .get();
+
+      final isConflicting = conflictSnapshot.docs.any(
+            (doc) => doc['time'] == selectedTime,
+      );
+
+      if (isConflicting) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Selected time is already booked.')),
+        );
+        return false;
+      }
 
       // Create the appointment
       final appointmentRef = await _appointmentsRef.add({
@@ -111,6 +147,15 @@ class AppointmentService {
         'userId': userId,
         'patientName': patientName,
       });
+
+      // Add R50 consultation fee to outstanding balance
+      await updateOutstandingBalance(
+        userId: userId,
+        doctorName: selectedDoctor!,
+        amount: 50.0,
+        appointmentId: appointmentRef.id,
+      );
+
 
       // Send notification to patient
       await _sendNotification(
@@ -137,8 +182,13 @@ class AppointmentService {
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointment booked successfully.')),
+        SnackBar(
+          content: Text(
+            'Appointment booked successfully. Your new outstanding balance is R${outstanding.toStringAsFixed(2)}.',
+          ),
+        ),
       );
+
       return true;
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -147,6 +197,7 @@ class AppointmentService {
       return false;
     }
   }
+
 
   static Future<bool> rescheduleAppointment({
     required BuildContext context,
@@ -239,4 +290,41 @@ class AppointmentService {
       return false;
     }
   }
+  // Get user's outstanding balance
+  // Fetch total outstanding balance from 'bills' collection
+  static Future<double> fetchOutstandingBalance(String userId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('bills')
+        .where('userId', isEqualTo: userId)
+        .where('status', isEqualTo: 'Unpaid')
+        .get();
+
+    double total = 0.0;
+    for (var doc in querySnapshot.docs) {
+      final data = doc.data();
+      total += (data['amount'] ?? 0).toDouble();
+    }
+
+    return total;
+  }
+
+// Add a new bill to 'bills' collection (e.g., for consultation fee)
+  static Future<void> updateOutstandingBalance({
+    required String userId,
+    required String doctorName,
+    required double amount,
+    required String appointmentId,
+  }) async {
+    await FirebaseFirestore.instance.collection('bills').add({
+      'userId': userId,
+      'doctorName': doctorName,
+      'appointmentId': appointmentId,
+      'title': 'Consultation Fee - $doctorName',
+      'amount': amount,
+      'status': 'Unpaid',
+      'timestamp': Timestamp.now(),
+    });
+  }
+
+
 }
