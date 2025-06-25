@@ -75,31 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const Divider(),
 
-          const Padding(
-            padding: EdgeInsets.all(12.0),
-            child: Text('Help & Support', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: const Text('FAQs'),
-            onTap: () {
-              // Navigate to FAQs
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.phone),
-            title: const Text('Contact Support'),
-            onTap: () {
-              // Navigate to Contact Support screen
-            },
-          ),
-          const Divider(),
 
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Logout', style: TextStyle(color: Colors.red)),
-            onTap: _logout,
-          ),
         ],
       ),
     );

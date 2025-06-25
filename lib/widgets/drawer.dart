@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../screens/profile/profile.dart';
 import '../screens/settings/doctor_settings_screen.dart';
+import '../screens/settings/help_faq_screen.dart';
 
 class PatientDrawer extends StatelessWidget {
   const PatientDrawer({super.key});
@@ -121,12 +122,18 @@ class PatientDrawer extends StatelessWidget {
                     _buildDrawerCard(
                       icon: Icons.description,
                       label: 'Terms & Conditions',
-                      onTap: () => Navigator.pushNamed(context, '/terms'),
+                      onTap: () {}
                     ),
                     _buildDrawerCard(
                       icon: Icons.help_outline,
                       label: 'Help & FAQ',
-                      onTap: () => Navigator.pushNamed(context, '/help'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HelpFaqScreen()),
+                        );
+
+                      }
                     ),
                     _buildDrawerCard(
                       icon: Icons.info,
