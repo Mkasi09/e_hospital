@@ -9,6 +9,7 @@ import '../book/book_appointment.dart';
 import '../files/files_and_prescriptions.dart';
 import '../../../widgets/drawer.dart';
 import '../../../widgets/home_tile.dart';
+import '../payments/billing_payment.dart';
 
 
 class PatientHomeScreen extends StatelessWidget {
@@ -102,7 +103,12 @@ class PatientHomeScreen extends StatelessWidget {
                   DashboardCard(
                     icon: Icons.payment,
                     label: 'Billing & Payment',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const BillingAndPaymentScreen()),
+                      );
+                    },
                   ),
                 ],
               ),

@@ -171,9 +171,35 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
               const SizedBox(height: 16),
               ReasonForVisitField(controller: _reasonController),
               const SizedBox(height: 24),
+
+              // 🆕 Fee Text
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: const [
+                    SizedBox(width: 16),
+                    Icon(Icons.payment, color: Colors.green),
+                    SizedBox(width:8),
+                    Text(
+                      'Consultation Fee: R50',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submitAppointment,
-                child: const Text('Book Appointment'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                ),
+                child: const Text('Book Appointment & Pay R50'),
               ),
             ],
           ),
