@@ -12,143 +12,80 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String fullName = 'Loading...';
+  // Personal info
+  String fullName = '';
   String email = '';
   String? profilePicture;
-  String userType = '';
+  String role = '';
   String phone = '';
   String nextOfKin = '';
+  String nextOfKinPhone = '';
   String address = '';
   String id = "";
   String dob = '';
   String gender = '';
-  String nextOfKinPhone = '';
+
+  // Medical info
+  String bloodGroup = '';
+  String allergies = '';
+  String chronicConditions = '';
+  String medications = '';
+  String primaryDoctor = '';
+
+  String specialty = '';
+  String hospital = '';
+  String licenseNumber = '';
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
     _loadUserData();
   }
-  void _showEditAddressDialog() {
-    final streetController = TextEditingController();
-    final cityController = TextEditingController();
-    final provinceController = TextEditingController();
-    final postalCodeController = TextEditingController();
-    final countryController = TextEditingController();
-
-    final phoneController = TextEditingController(text: phone);
-    final nextOfKinController = TextEditingController(text: nextOfKin);
-
-    // Pre-fill address fields by splitting existing address string
-    final parts = address.split(',').map((e) => e.trim()).toList();
-    if (parts.length >= 5) {
-      streetController.text = parts[0];
-      cityController.text = parts[1];
-      provinceController.text = parts[2];
-      postalCodeController.text = parts[3];
-      countryController.text = parts[4];
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Personal Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(
-                controller: phoneController,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
-              ),
-              TextField(
-                controller: nextOfKinController,
-                decoration: const InputDecoration(labelText: 'Next of Kin'),
-              ),
-              const Divider(height: 32),
-              TextField(
-                controller: streetController,
-                decoration: const InputDecoration(labelText: 'Street'),
-              ),
-              TextField(
-                controller: cityController,
-                decoration: const InputDecoration(labelText: 'City'),
-              ),
-              TextField(
-                controller: provinceController,
-                decoration: const InputDecoration(labelText: 'Province'),
-              ),
-              TextField(
-                controller: postalCodeController,
-                decoration: const InputDecoration(labelText: 'Postal Code'),
-              ),
-              TextField(
-                controller: countryController,
-                decoration: const InputDecoration(labelText: 'Country'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                final addressData = {
-                  'street': streetController.text.trim(),
-                  'city': cityController.text.trim(),
-                  'province': provinceController.text.trim(),
-                  'postalCode': postalCodeController.text.trim(),
-                  'country': countryController.text.trim(),
-                };
-                await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-                  'phone': phoneController.text.trim(),
-                  'nextOfKin': nextOfKinController.text.trim(),
-                  'address': addressData,
-                });
-                Navigator.pop(context);
-                _loadUserData(); // Refresh UI
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
 
   Future<void> _loadUserData() async {
+    setState(() => _isLoading = true);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (snapshot.exists) {
-        final data = snapshot.data()!;
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data()!;
         final addressData = data['address'] as Map<String, dynamic>?;
+        final medicalData = data['medicalInfo'] as Map<String, dynamic>? ?? {};
 
         setState(() {
-          fullName = data['fullName'] ?? 'No Name';
+          fullName = data['fullName'] ?? data['name'] ?? '';
           email = user.email ?? '';
-          userType = data['userType'] ?? 'patient';
+          profilePicture = data['profilePicture'];
+          role = data['role'] ?? '';
           phone = data['phone'] ?? '';
-          nextOfKin = data['nextOfKin'] ?? '';
           id = data['id'] ?? '';
-          nextOfKinPhone = data['nextOfKinPhone'] ?? '';
           gender = data['gender'] ?? '';
           dob = _parseDobFromId(id);
+
+          nextOfKin = data['nextOfKin'] ?? '';
+          nextOfKinPhone = data['nextOfKinPhone'] ?? '';
+
           address = addressData != null
               ? '${addressData['street'] ?? ''}, ${addressData['city'] ?? ''}, ${addressData['province'] ?? ''}, ${addressData['postalCode'] ?? ''}, ${addressData['country'] ?? ''}'
-              : 'No address provided';
+              : '';
+
+          bloodGroup = medicalData['bloodGroup'] ?? '';
+          allergies = medicalData['allergies'] ?? '';
+          chronicConditions = medicalData['chronicConditions'] ?? '';
+          medications = medicalData['medications'] ?? '';
+          primaryDoctor = medicalData['primaryDoctor'] ?? '';
+
+          specialty = data['specialty'] ?? '';
+          hospital = data['hospitalName'] ?? '';
+          licenseNumber = data['licenseNumber'] ?? '';
+
+          _isLoading = false;
         });
       }
     }
   }
+
   String _parseDobFromId(String idNumber) {
     if (idNumber.length < 6) return '';
 
@@ -157,8 +94,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final month = int.parse(idNumber.substring(2, 4));
       final day = int.parse(idNumber.substring(4, 6));
 
-      // South African ID assumes:
-      // If year is > currentYear % 100, then it's 1900s, else 2000s
       final currentYear = DateTime.now().year;
       final century = (year > currentYear % 100) ? 1900 : 2000;
       final fullYear = century + year;
@@ -170,132 +105,350 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showEditProfileDialog() {
+    final phoneController = TextEditingController(text: phone);
+    final nextOfKinController = TextEditingController(text: nextOfKin);
+    final nextOfKinPhoneController = TextEditingController(text: nextOfKinPhone);
+
+    // Parse address parts or use empty strings
+    final parts = address.split(',').map((e) => e.trim()).toList();
+    final streetController = TextEditingController(text: parts.isNotEmpty ? parts[0] : '');
+    final cityController = TextEditingController(text: parts.length > 1 ? parts[1] : '');
+    final provinceController = TextEditingController(text: parts.length > 2 ? parts[2] : '');
+    final postalCodeController = TextEditingController(text: parts.length > 3 ? parts[3] : '');
+    final countryController = TextEditingController(text: parts.length > 4 ? parts[4] : '');
+
+    // Medical info controllers
+    final bloodGroupController = TextEditingController(text: bloodGroup);
+    final allergiesController = TextEditingController(text: allergies);
+    final chronicConditionsController = TextEditingController(text: chronicConditions);
+    final medicationsController = TextEditingController(text: medications);
+    final primaryDoctorController = TextEditingController(text: primaryDoctor);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Personal & Medical Info'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Personal Details', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              _buildTextField(phoneController, 'Phone Number', TextInputType.phone),
+              _buildTextField(nextOfKinController, 'Next of Kin'),
+              _buildTextField(nextOfKinPhoneController, 'Next of Kin Phone', TextInputType.phone),
+              const SizedBox(height: 12),
+              _buildTextField(streetController, 'Street'),
+              _buildTextField(cityController, 'City'),
+              _buildTextField(provinceController, 'Province'),
+              _buildTextField(postalCodeController, 'Postal Code', TextInputType.number),
+              _buildTextField(countryController, 'Country'),
+              const Divider(height: 32),
+              const Text('Medical Information', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              _buildTextField(bloodGroupController, 'Blood Group'),
+              _buildTextField(allergiesController, 'Allergies', TextInputType.multiline,),
+              _buildTextField(chronicConditionsController, 'Chronic Conditions', TextInputType.multiline,),
+              _buildTextField(medicationsController, 'Medications', TextInputType.multiline,),
+              _buildTextField(primaryDoctorController, 'Primary Doctor'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                final addressData = {
+                  'street': streetController.text.trim(),
+                  'city': cityController.text.trim(),
+                  'province': provinceController.text.trim(),
+                  'postalCode': postalCodeController.text.trim(),
+                  'country': countryController.text.trim(),
+                };
+                final medicalData = {
+                  'bloodGroup': bloodGroupController.text.trim(),
+                  'allergies': allergiesController.text.trim(),
+                  'chronicConditions': chronicConditionsController.text.trim(),
+                  'medications': medicationsController.text.trim(),
+                  'primaryDoctor': primaryDoctorController.text.trim(),
+                };
+
+                await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                  'phone': phoneController.text.trim(),
+                  'nextOfKin': nextOfKinController.text.trim(),
+                  'nextOfKinPhone': nextOfKinPhoneController.text.trim(),
+                  'address': addressData,
+                  'medicalInfo': medicalData,
+                });
+
+                Navigator.pop(context);
+                _loadUserData();
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label,
+      [TextInputType keyboardType = TextInputType.text, int maxLines = 1]) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+      ),
+    );
+  }
+  Widget _buildMedicalInfoCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 32),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Medical Information',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade800,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _infoRow('Blood Group', bloodGroup),
+          _infoRow('Allergies', allergies),
+          _infoRow('Chronic Conditions', chronicConditions),
+          _infoRow('Medications', medications),
+          _infoRow('Primary Doctor', primaryDoctor),
+        ],
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    final isDoctor = userType.toLowerCase() == 'doctor';
+    final isDoctor = 'doctor';
+
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('My Profile'),
+          backgroundColor: Colors.blue.shade800,
+          centerTitle: true,
+          elevation: 1,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Profile'),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.blue.shade800,
         centerTitle: true,
-        elevation: 0,
-      ),
-      body: Container(
-        width: double.infinity,
-        color: Colors.grey[100],
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              if (isDoctor && profilePicture != null)
-                CircleAvatar(
-                  radius: 50,
-                  backgroundImage: NetworkImage(profilePicture!),
-                ),
-              if (isDoctor && profilePicture != null)
-                const SizedBox(height: 16),
-
-              Text(
-                fullName,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                email,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    )
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Personal Details',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                          onPressed: _showEditAddressDialog,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _infoRow('ID Number', id),
-                    _infoRow('Gender', gender),
-                    _infoRow('Date of birthday', dob),
-                    _infoRow('Phone Number', phone),
-                    _infoRow('Next of Kin', nextOfKin+' ('+nextOfKinPhone+')'),
-                    _infoRow('Address', address),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              _buildProfileOption(
-                icon: Icons.lock,
-                label: 'Change Password',
-                onTap: () {
-                  // TODO: Navigate to change password screen
-                },
-              ),
-              _buildProfileOption(
-                icon: Icons.logout,
-                label: 'Logout',
-                iconColor: Colors.red,
-                onTap: () => _logout(context),
-              ),
-            ],
+        elevation: 1,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: _showEditProfileDialog,
+            tooltip: 'Edit Profile',
           ),
-        ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        children: [
+          Center(
+            child: CircleAvatar(
+              radius: 60,
+              backgroundColor: Colors.grey.shade300,
+              backgroundImage: profilePicture != null && profilePicture!.isNotEmpty
+                  ? NetworkImage(profilePicture!)
+                  : null,
+              child: (profilePicture == null || profilePicture!.isEmpty)
+                  ? Text(
+                fullName.isNotEmpty ? fullName[0].toUpperCase() : '',
+                style: const TextStyle(fontSize: 40, color: Colors.white),
+              )
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              fullName,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              email,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // Personal Details Container
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Personal Details',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _infoRow('ID Number', id),
+                _infoRow('Gender', gender),
+                _infoRow('Date of Birth', dob),
+                _infoRow('Phone Number', phone),
+    if (role!=isDoctor) ...[
+                _infoRow(
+                  'Next of Kin',
+                  nextOfKin.isNotEmpty
+                      ? (nextOfKinPhone.isNotEmpty ? '$nextOfKin ($nextOfKinPhone)' : nextOfKin)
+                      : '',
+                ),
+                _infoRow('Address', address),
+              ],
+    ]
+            ),
+          ),
+
+          // Medical Info Container
+          Container(
+            margin: const EdgeInsets.only(top: 32),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  role=='doctor' ? 'Professional Information' : 'Medical Information',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (role==isDoctor) ...[
+                  _infoRow('Specialty', specialty),
+                  _infoRow('Hospital', hospital),
+                  _infoRow('License No.', licenseNumber),
+                ] else ...[
+                  _infoRow('Next of Kin', nextOfKin),
+                  _infoRow('Kin Phone', nextOfKinPhone),
+                  _infoRow('Blood Group', bloodGroup),
+                  _infoRow('Allergies', allergies),
+                  _infoRow('Chronic Conditions', chronicConditions),
+                  _infoRow('Medications', medications),
+                  _infoRow('Primary Doctor', primaryDoctor),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 40),
+
+          _buildProfileOption(
+            icon: Icons.lock_outline,
+            label: 'Change Password',
+            onTap: () {
+              // TODO: Implement change password screen
+            },
+          ),
+          _buildProfileOption(
+            icon: Icons.logout,
+            label: 'Logout',
+            iconColor: Colors.red.shade600,
+            onTap: () => _logout(context),
+          ),
+        ],
       ),
     );
   }
 
   Widget _infoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             "$label: ",
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
           ),
           Expanded(
             child: Text(
               value.isNotEmpty ? value : "Not provided",
-              style: const TextStyle(color: Colors.black87),
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade800,
+              ),
             ),
           ),
         ],
@@ -310,16 +463,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Color? iconColor,
   }) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      elevation: 5,
+      shadowColor: Colors.black26,
       child: ListTile(
-        leading: Icon(icon, color: iconColor ?? Colors.blueAccent),
+        leading: Icon(icon, color: iconColor ?? Colors.blue.shade800),
         title: Text(
           label,
-          style: const TextStyle(fontSize: 16),
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey.shade500),
         onTap: onTap,
       ),
     );

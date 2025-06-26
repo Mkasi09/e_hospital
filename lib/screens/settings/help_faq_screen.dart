@@ -42,12 +42,7 @@ class _HelpFaqScreenState extends State<HelpFaqScreen> {
     {
       "question": "💬 How do I contact support?",
       "answer":
-      "Go to Settings > Contact Support. You can send a message or email the help team directly."
-    },
-    {
-      "question": "⚙️ How do I change app language or settings?",
-      "answer":
-      "Go to Settings and choose your preferred language, theme, and preferences."
+      "Go to to the drawer > about > Contact Support. You can send an email the help team directly."
     },
     {
       "question": "🧾 Where can I view my past appointments?",
