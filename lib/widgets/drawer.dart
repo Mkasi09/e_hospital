@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:e_hospital/screens/settings/about_screen.dart';
 import 'package:e_hospital/screens/settings/terms_and_conditons.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -144,7 +145,13 @@ class PatientDrawer extends StatelessWidget {
                     _buildDrawerCard(
                       icon: Icons.info,
                       label: 'About',
-                      onTap: () => Navigator.pushNamed(context, '/help'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AboutScreen()),
+                        );
+
+                      }
                     ),
                   ],
                 ),
