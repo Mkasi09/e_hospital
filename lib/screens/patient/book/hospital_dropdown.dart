@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HospitalDropdown extends StatelessWidget {
   final String? selectedHospital;
-  final Function(String, List<String>) onHospitalSelected;
+  final Function(String, List<Map<String, String>>) onHospitalSelected;
 
   const HospitalDropdown({
     super.key,
@@ -57,18 +57,33 @@ class HospitalDropdown extends StatelessWidget {
               },
               itemBuilder: (context, suggestion) => ListTile(title: Text(suggestion)),
               onSuggestionSelected: (selected) async {
-                final doc = await FirebaseFirestore.instance
+                final hospitalQuery = await FirebaseFirestore.instance
                     .collection('hospitals')
                     .where('name', isEqualTo: selected)
                     .limit(1)
                     .get();
 
-                if (doc.docs.isNotEmpty) {
-                  final data = doc.docs.first.data();
-                  onHospitalSelected(
-                    data['name'],
-                    List<String>.from(data['doctors']),
-                  );
+                if (hospitalQuery.docs.isNotEmpty) {
+                  final hospitalDoc = hospitalQuery.docs.first;
+                  final hospitalName = hospitalDoc['name'];
+
+                  // Now fetch doctors where hospitalId matches this hospital
+                  final doctorsQuery = await FirebaseFirestore.instance
+                      .collection('doctors')
+                      .where('hospitalId', isEqualTo: hospitalDoc.id)
+                      .get();
+
+                  final doctorsList = doctorsQuery.docs.map((doc) {
+                    final data = doc.data();
+                    return {
+                      'doctorId': data['doctorId'] as String,
+                      'name': data['name'] as String,
+                      'specialty': data['specialty'] as String,
+                    };
+                  }).toList();
+
+                  onHospitalSelected(hospitalName, doctorsList);
+
                 }
               },
               noItemsFoundBuilder: (context) => const Padding(

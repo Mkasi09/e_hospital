@@ -73,6 +73,20 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
     _reasonController.dispose();
     super.dispose();
   }
+  void _loadBookedSlots() async {
+    if (_selectedDoctor != null && _selectedDate != null) {
+      final slots = await AppointmentService.fetchBookedSlots(
+        _selectedDoctor!['id']!, // <-- FIXED
+        _selectedDate!,
+      );
+      print('Booked slots fetched: $slots');
+      setState(() {
+        _bookedSlots = slots;
+      });
+    }
+  }
+
+
 
   void _submitAppointment() async {
     bool success;
@@ -125,7 +139,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-            /* HospitalDropdown(
+
+             /*HospitalDropdown(
                 selectedHospital: _selectedHospital,
                 onHospitalSelected: (hospital, doctors) {
                   setState(() {
@@ -142,6 +157,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                   setState(() {
                     _selectedDoctor = doctor;
                   });
+                  _loadBookedSlots();
                 },
               ),
 
@@ -150,15 +166,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
               const SizedBox(height: 16),
               DatePickerTile(
                 selectedDate: _selectedDate,
-                onDatePicked: (date) async {
+                onDatePicked: (date) {
                   setState(() => _selectedDate = date);
-                  if (_selectedDoctor != null) {
-                    _bookedSlots = await AppointmentService.fetchBookedSlots(
-                      _selectedDoctor!['name']!,
-                      date,
-                    );
-                  }
+                  _loadBookedSlots(); // This will handle everything now
                 },
+
               ),
               const SizedBox(height: 16),
               if (_selectedDoctor != null && _selectedDate != null)
@@ -200,6 +212,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 ),
                 child: const Text('Book Appointment & Pay R50'),
+
               ),
             ],
           ),

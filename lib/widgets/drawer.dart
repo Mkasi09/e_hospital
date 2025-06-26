@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:e_hospital/screens/settings/terms_and_conditons.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -122,7 +123,12 @@ class PatientDrawer extends StatelessWidget {
                     _buildDrawerCard(
                       icon: Icons.description,
                       label: 'Terms & Conditions',
-                      onTap: () {}
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const TermsAndConditionsScreen()),
+                        );
+                      }
                     ),
                     _buildDrawerCard(
                       icon: Icons.help_outline,
