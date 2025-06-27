@@ -87,7 +87,7 @@ class DoctorsHomepage extends StatelessWidget {
                   ),
                   DashboardCard(
                     icon: Icons.schedule,
-                    label: 'Schedule',
+                    label: 'My Schedule',
                     onTap: () {
                       Navigator.push(
                         context,

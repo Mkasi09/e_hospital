@@ -33,7 +33,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Patients'),
+        title: const Text('All Patients'),
         actions: [
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),

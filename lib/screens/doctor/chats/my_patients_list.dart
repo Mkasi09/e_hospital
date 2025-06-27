@@ -20,12 +20,12 @@ class MyPatientsScreen extends StatelessWidget {
     final doctorName = doctorSnapshot.data()?['name'] ?? 'Doctor';
 
     final chatMetaRef = FirebaseDatabase.instance.ref('chats/$chatId/meta');
-    await chatMetaRef.set({
+    await chatMetaRef.update({
       'doctorId': doctorId,
       'patientId': patientId,
       'doctorName': doctorName,
       'patientName': patientName,
-      'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+      'lastUpdated': ServerValue.timestamp,
     });
 
     Navigator.push(
@@ -65,31 +65,38 @@ class MyPatientsScreen extends StatelessWidget {
             return const Center(child: Text("No appointments found."));
           }
 
-          // Collect unique patients
-          final uniquePatients = <String, String>{}; // patientId: name
+          final uniquePatients = <String, Map<String, String>>{}; // patientId: {name, profilePicture}
+
           for (var doc in docs) {
             final data = doc.data() as Map<String, dynamic>;
-            final pid = data['patientId'];
+            final pid = data['userId'];
+            if (pid == null) continue;
+
             final pname = data['patientName'] ?? 'Patient';
-            uniquePatients[pid] = pname;
+            final ppic = data['profilePicture'] ?? ''; // optional
+
+            uniquePatients[pid] = {
+              'name': pname,
+              'profilePicture': ppic,
+            };
           }
 
           return ListView.builder(
             itemCount: uniquePatients.length,
             itemBuilder: (context, index) {
               final patientId = uniquePatients.keys.elementAt(index);
-              final patientName = uniquePatients[patientId]!;
+              final patientInfo = uniquePatients[patientId]!;
+              final patientName = patientInfo['name']!;
+              final profilePic = patientInfo['profilePicture']!;
 
               return ListTile(
+                leading:   CircleAvatar(child: Icon(Icons.person)),
                 title: Text(patientName),
-                subtitle: Text('Tap to start a chat'),
-                trailing: ElevatedButton(
-                  onPressed: () => _startChat(
-                    context: context,
-                    patientId: patientId,
-                    patientName: patientName,
-                  ),
-                  child: const Text("Chat"),
+                subtitle: const Text('Tap to start a chat'),
+                onTap: () => _startChat(
+                  context: context,
+                  patientId: patientId,
+                  patientName: patientName,
                 ),
               );
             },

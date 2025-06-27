@@ -20,6 +20,66 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   final CollectionReference patientFilesCollection =
   FirebaseFirestore.instance.collection('uploaded_files');
 
+  Future<void> _requestService() async {
+    final servicesSnapshot = await FirebaseFirestore.instance.collection('services').get();
+    final services = servicesSnapshot.docs;
+
+    String? selectedServiceId;
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Request a Service"),
+        content: DropdownButtonFormField<String>(
+          isExpanded: true,
+          items: services.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return DropdownMenuItem<String>(
+              value: doc.id,
+              child: Text("${data['name']} (R${data['price']})"),
+            );
+          }).toList(),
+          onChanged: (value) {
+            selectedServiceId = value;
+          },
+          hint: const Text("Select a service"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (selectedServiceId != null) {
+                final selectedService = services.firstWhere((doc) => doc.id == selectedServiceId);
+                final serviceData = selectedService.data() as Map<String, dynamic>;
+                final currentDoctor = FirebaseFirestore.instance.collection('users').doc(FirebaseFirestore.instance.app.options.projectId);
+
+                await FirebaseFirestore.instance.collection('service_requests').add({
+                  'patientId': widget.userId,
+                  'doctorId': FirebaseFirestore.instance.app.options.projectId, // Use current user's ID
+                  'serviceId': selectedServiceId,
+                  'serviceName': serviceData['name'],
+                  'price': serviceData['price'],
+                  'status': 'pending',
+                  'timestamp': DateTime.now().millisecondsSinceEpoch,
+                });
+
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Service request submitted.")),
+                );
+              }
+            },
+            child: const Text("Submit Request"),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -267,6 +327,17 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _requestService,
+                  icon: const Icon(Icons.add_circle),
+                  label: const Text("Request a Service"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 // Uploaded Files Sections
                 _buildFilesSection(
