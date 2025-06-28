@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:e_hospital/screens/doctor/appointments/patients_appointments.dart';
 import 'package:e_hospital/screens/doctor/chats/doctor_inbox.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,11 +12,53 @@ import '../doctors_notifications/notification_bell.dart';
 import '../patients/Doctors_patient_screen.dart';
 import '../schedule/schedule_screen.dart';
 
-class DoctorsHomepage extends StatelessWidget {
-  final String doctorName;
+class DoctorsHomepage extends StatefulWidget {
+  const DoctorsHomepage({super.key});
 
+  @override
+  State<DoctorsHomepage> createState() => _DoctorsHomepageState();
+}
 
-  const DoctorsHomepage({super.key, this.doctorName = 'Dr. Smith'});
+class _DoctorsHomepageState extends State<DoctorsHomepage> {
+  String? _doctorName;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDoctorName();
+  }
+
+  Future<void> _fetchDoctorName() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
+
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          setState(() {
+            _doctorName = data['name'] ?? 'Doctor';
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _doctorName = 'Doctor';
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _doctorName = 'Doctor';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +71,10 @@ class DoctorsHomepage extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => NotificationScreen( )),
+                MaterialPageRoute(builder: (context) => NotificationScreen()),
               );
             },
           ),
-
         ],
       ),
       drawer: const PatientDrawer(),
@@ -42,14 +84,16 @@ class DoctorsHomepage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome, $doctorName!',
+              'Welcome, $_doctorName!',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Center(
               child: CircleAvatar(
                 radius: 50,
-                backgroundImage: AssetImage('assets/images/doctor_avatar.png'), // Make sure this exists or use NetworkImage
+                backgroundImage: AssetImage(
+                  'assets/images/doctor_avatar.png',
+                ), // Make sure this exists or use NetworkImage
               ),
             ),
             const SizedBox(height: 24),
@@ -71,19 +115,23 @@ class DoctorsHomepage extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const DoctorAppointments()),
+                        MaterialPageRoute(
+                          builder: (context) => const DoctorAppointments(),
+                        ),
                       );
                     },
                   ),
                   DashboardCard(
                     icon: Icons.people,
                     label: 'Patients',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const PatientsScreen()),
-                        );
-                      },
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PatientsScreen(),
+                        ),
+                      );
+                    },
                   ),
                   DashboardCard(
                     icon: Icons.schedule,
@@ -92,7 +140,9 @@ class DoctorsHomepage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ScheduleScreen(), // assuming no arguments needed
+                          builder:
+                              (context) =>
+                                  const ScheduleScreen(), // assuming no arguments needed
                         ),
                       );
                     },
@@ -104,7 +154,9 @@ class DoctorsHomepage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const InboxScreen(), // assuming no arguments needed
+                          builder:
+                              (context) =>
+                                  const InboxScreen(), // assuming no arguments needed
                         ),
                       );
                     },
@@ -112,7 +164,6 @@ class DoctorsHomepage extends StatelessWidget {
                 ],
               ),
             ),
-
           ],
         ),
       ),

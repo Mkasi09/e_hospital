@@ -1,3 +1,4 @@
+import 'package:e_hospital/screens/settings/change_password.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +39,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.lock_outline),
             title: const Text('Change Password'),
             onTap: () {
-              // Navigate to Change Password screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChangePasswordPage()),
+              );// Navigate to Change Password screen
             },
           ),
           const Divider(),

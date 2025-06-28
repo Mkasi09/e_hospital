@@ -1,107 +1,91 @@
 import 'package:flutter/material.dart';
 
-class TermsAndConditionsScreen extends StatefulWidget {
+class TermsAndConditionsScreen extends StatelessWidget {
   const TermsAndConditionsScreen({super.key});
-
-  @override
-  State<TermsAndConditionsScreen> createState() =>
-      _TermsAndConditionsScreenState();
-}
-
-class _TermsAndConditionsScreenState extends State<TermsAndConditionsScreen> {
-  bool _agreed = false;
-
-
-
-  Widget buildExpansionTile(String title, String content, IconData icon) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: ExpansionTile(
-        leading: Icon(icon, color: Colors.teal),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Text(
-              content,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+      backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
-        elevation: 0,
         title: const Text("Terms & Conditions"),
         centerTitle: true,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "📜 Please read the following terms and conditions carefully before using the app.",
+          children: const [
+            Text(
+              "📜 Please read the following terms and conditions carefully before using the app.\n",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 20),
-
-            buildExpansionTile("1. Acceptance of Terms",
-                "By using this app, you agree to be bound by these terms.",
-                Icons.check_circle_outline),
-            buildExpansionTile("2. User Responsibilities",
-                "You agree not to misuse the app and to respect others’ rights.",
-                Icons.verified_user_outlined),
-            buildExpansionTile("3. Privacy Policy",
-                "Your data is protected and handled responsibly. Please read our full privacy policy.",
-                Icons.lock_outline),
-            buildExpansionTile("4. Modifications",
-                "We may update these terms from time to time. Continued use implies acceptance.",
-                Icons.update_outlined),
-            buildExpansionTile("5. Contact Us",
-                "For any questions, email us at mkasi09@gmail.com.",
-                Icons.email_outlined),
-            buildExpansionTile("6. Account Security",
-                "You are responsible for maintaining the confidentiality of your login credentials and any activities under your account.",
-                Icons.security_outlined),
-            buildExpansionTile("7. Intellectual Property",
-                "All content, trademarks, and data on this app are the property of the app owners unless otherwise indicated.",
-                Icons.copyright_outlined),
-            buildExpansionTile("8. Termination of Use",
-                "We reserve the right to suspend or terminate your access to the app if you violate these terms.",
-                Icons.cancel_outlined),
-            buildExpansionTile("9. Third-Party Services",
-                "The app may contain links to third-party services. We are not responsible for their content or privacy practices.",
-                Icons.link_outlined),
-
-
-            const SizedBox(height: 30),
-
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  )
-                ],
-              ),
-
+            SectionTitle(" 1. Acceptance of Terms ✅"),
+            SectionBody(
+                "By using this app, you agree to be bound by these terms and conditions."),
+            SectionTitle(" 2. User Responsibilities 👥"),
+            SectionBody(
+                "You agree not to misuse the app and to respect others’ rights and privacy. Any violation may result in suspension or termination of your access."),
+            SectionTitle(" 3. Privacy Policy 🔒"),
+            SectionBody(
+                "Your data is protected and handled responsibly. For more details, please read our full privacy policy."),
+            SectionTitle(" 4. Modifications 🔁"),
+            SectionBody(
+                "We may update these terms from time to time. Continued use of the app implies that you accept the updated terms."),
+            SectionTitle(" 5. Contact Us 📧"),
+            SectionBody(
+                "If you have any questions or concerns about these terms, feel free to contact us at mkasi09@gmail.com."),
+            SectionTitle(" 6. Account Security 🛡️"),
+            SectionBody(
+                "You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account."),
+            SectionTitle(" 7. Intellectual Property ©️"),
+            SectionBody(
+                "All content, trademarks, and data on this app are the property of the app owners unless otherwise indicated. Unauthorized use is prohibited."),
+            SectionTitle(" 8. Termination of Use 🚫"),
+            SectionBody(
+                "We reserve the right to suspend or terminate your access to the app if you violate these terms."),
+            SectionTitle(" 9. Third-Party Services 🔗"),
+            SectionBody(
+                "This app may contain links to third-party services. We are not responsible for their content, functionality, or privacy practices."),
+            SizedBox(height: 20),
+          ],
+        ),
       ),
-    ])));
+    );
+  }
+}
+
+// Reusable styled widgets
+class SectionTitle extends StatelessWidget {
+  final String text;
+  const SectionTitle(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0, bottom: 4),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 15.5,
+          fontWeight: FontWeight.bold,
+          color: Colors.teal,
+        ),
+      ),
+    );
+  }
+}
+
+class SectionBody extends StatelessWidget {
+  final String text;
+  const SectionBody(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(fontSize: 14.5, height: 1.6, color: Colors.black87),
+    );
   }
 }

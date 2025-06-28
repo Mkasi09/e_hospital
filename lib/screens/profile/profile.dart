@@ -1,6 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import '../../firebase_auth/signin.dart';
 
@@ -42,6 +49,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadUserData();
   }
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile == null) return;
+
+    final file = File(pickedFile.path);
+    final cloudinaryUploadUrl = Uri.parse('https://api.cloudinary.com/v1_1/dzz3iovq5/raw/upload');
+
+    final request = http.MultipartRequest('POST', cloudinaryUploadUrl)
+      ..fields['upload_preset'] = 'ehospital'
+      ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      final resStr = await response.stream.bytesToString();
+      final data = json.decode(resStr);
+      final secureUrl = data['secure_url'];
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'profilePicture': secureUrl,
+        });
+
+        setState(() {
+          profilePicture = secureUrl;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile picture updated")),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to upload image")),
+      );
+    }
+  }
+
 
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
@@ -283,20 +331,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         children: [
           Center(
-            child: CircleAvatar(
-              radius: 60,
-              backgroundColor: Colors.grey.shade300,
-              backgroundImage: profilePicture != null && profilePicture!.isNotEmpty
-                  ? NetworkImage(profilePicture!)
-                  : null,
-              child: (profilePicture == null || profilePicture!.isEmpty)
-                  ? Text(
-                fullName.isNotEmpty ? fullName[0].toUpperCase() : '',
-                style: const TextStyle(fontSize: 40, color: Colors.white),
-              )
-                  : null,
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage: profilePicture != null && profilePicture!.isNotEmpty
+                      ? NetworkImage(profilePicture!)
+                      : null,
+                  child: (profilePicture == null || profilePicture!.isEmpty)
+                      ? Text(
+                    fullName.isNotEmpty ? fullName[0].toUpperCase() : '',
+                    style: const TextStyle(fontSize: 40, color: Colors.white),
+                  )
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _pickAndUploadImage,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      padding: const EdgeInsets.all(6),
+                      child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
+
+
           const SizedBox(height: 16),
           Center(
             child: Text(
@@ -411,19 +481,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 40),
 
-          _buildProfileOption(
-            icon: Icons.lock_outline,
-            label: 'Change Password',
-            onTap: () {
-              // TODO: Implement change password screen
-            },
-          ),
-          _buildProfileOption(
-            icon: Icons.logout,
-            label: 'Logout',
-            iconColor: Colors.red.shade600,
-            onTap: () => _logout(context),
-          ),
+
+
         ],
       ),
     );
@@ -480,10 +539,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-Future<void> _logout(BuildContext context) async {
-  await FirebaseAuth.instance.signOut();
-  Navigator.of(context).pushAndRemoveUntil(
-    MaterialPageRoute(builder: (context) => LoginPage()),
-        (route) => false,
-  );
-}
