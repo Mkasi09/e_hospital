@@ -165,10 +165,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Divider(height: 40, thickness: 1),
+        const Divider(height: 40, thickness: 1),
         Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.blueAccent,
@@ -176,16 +176,23 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         ),
         const SizedBox(height: 12),
         StreamBuilder<QuerySnapshot>(
-          stream: patientFilesCollection.orderBy('date', descending: true).snapshots(),
+          stream: stream,
           builder: (context, snapshot) {
-            if (snapshot.hasError) return const Text('Error loading documents.');
-            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+            if (snapshot.hasError) {
+              return const Text('Error loading documents.');
+            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
             if (snapshot.data!.docs.isEmpty) {
               return Column(
                 children: const [
                   Icon(Icons.folder_off, size: 60, color: Colors.grey),
                   SizedBox(height: 8),
-                  Text('You have not uploaded any documents yet.', style: TextStyle(color: Colors.grey)),
+                  Text(
+                    'You have not uploaded any documents yet.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               );
             }
@@ -197,7 +204,13 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   title: data['title'] ?? 'Untitled',
                   date: (data['date'] as Timestamp).toDate(),
                   status: data['status'] ?? 'pending',
-                  downloadUrl: data['downloadUrl'] ?? '', onDelete: () {  },
+                  downloadUrl: data['downloadUrl'] ?? '',
+                  onDelete: () async {
+                    await collectionRef.doc(doc.id).delete();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('File deleted successfully.')),
+                    );
+                  },
                 );
               }).toList(),
             );
@@ -206,6 +219,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       ],
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

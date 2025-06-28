@@ -1,10 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../book/book_appointment.dart';
 import 'detailed.dart';
 
 class AppointmentsScreen extends StatelessWidget {
   const AppointmentsScreen({super.key});
+
 
   Future<void> _deleteAppointment(BuildContext context, String docId) async {
     try {
@@ -21,8 +24,11 @@ class AppointmentsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
     final appointmentsQuery = FirebaseFirestore.instance
         .collection('appointments')
+        .where('userId', isEqualTo: userId)
         .orderBy('date', descending: true);
 
     return Scaffold(
@@ -39,17 +45,37 @@ class AppointmentsScreen extends StatelessWidget {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.event_busy, size: 80, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
+                children: [
+                  const Icon(Icons.event_busy, size: 80, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
                     'No appointments found.',
                     style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Navigate to the booking screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BookAppointmentScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text("Book New Appointment"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      textStyle: const TextStyle(fontSize: 16, color: Colors.black),
+                    ),
                   ),
                 ],
               ),
             );
           }
+
 
           final appointments = snapshot.data!.docs;
 
