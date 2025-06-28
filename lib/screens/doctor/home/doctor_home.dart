@@ -21,6 +21,7 @@ class DoctorsHomepage extends StatefulWidget {
 
 class _DoctorsHomepageState extends State<DoctorsHomepage> {
   String? _doctorName;
+  String? profileUrl = 'null'; // Use a default URL or null
   bool _isLoading = true;
 
   @override
@@ -43,11 +44,13 @@ class _DoctorsHomepageState extends State<DoctorsHomepage> {
           final data = doc.data() as Map<String, dynamic>;
           setState(() {
             _doctorName = data['name'] ?? 'Doctor';
+             profileUrl = data['profilePicture'];
             _isLoading = false;
           });
         } else {
           setState(() {
             _doctorName = 'Doctor';
+            profileUrl = 'null';
             _isLoading = false;
           });
         }
@@ -55,6 +58,7 @@ class _DoctorsHomepageState extends State<DoctorsHomepage> {
     } catch (e) {
       setState(() {
         _doctorName = 'Doctor';
+        profileUrl = 'null';
         _isLoading = false;
       });
     }
@@ -90,10 +94,12 @@ class _DoctorsHomepageState extends State<DoctorsHomepage> {
             const SizedBox(height: 16),
             Center(
               child: CircleAvatar(
-                radius: 50,
-                backgroundImage: AssetImage(
-                  'assets/images/doctor_avatar.png',
-                ), // Make sure this exists or use NetworkImage
+                radius: 48,
+                backgroundColor: Colors.blue,
+                backgroundImage: profileUrl != null ? NetworkImage(profileUrl!) : null,
+                child: profileUrl == null
+                    ? const Icon(Icons.person, color: Colors.white, size: 36)
+                    : null,
               ),
             ),
             const SizedBox(height: 24),
