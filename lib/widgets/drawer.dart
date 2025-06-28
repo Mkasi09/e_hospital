@@ -4,6 +4,7 @@ import 'package:e_hospital/screens/settings/terms_and_conditons.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../firebase_auth/signin.dart';
 import '../screens/profile/profile.dart';
 import '../screens/settings/doctor_settings_screen.dart';
 import '../screens/settings/help_faq_screen.dart';
@@ -163,10 +164,9 @@ class PatientDrawer extends StatelessWidget {
                   icon: Icons.logout,
                   label: 'Logout',
                   iconColor: Colors.red,
-                  onTap: () async {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.pushReplacementNamed(context, '/login');
-                  },
+                  onTap: () => _logout(context),
+
+
                 ),
               ),
             ],
@@ -207,4 +207,12 @@ class PatientDrawer extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _logout(BuildContext context) async {
+  await FirebaseAuth.instance.signOut();
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (context) => LoginPage()),
+        (route) => false,
+  );
 }
