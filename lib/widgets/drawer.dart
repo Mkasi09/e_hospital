@@ -15,14 +15,11 @@ class PatientDrawer extends StatelessWidget {
   Future<Map<String, dynamic>> _fetchUserData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return {
-        'fullName': 'Patient',
-        'profileUrl': null,
-        'onlineStatus': false,
-      };
+      return {'fullName': 'Patient', 'profileUrl': null, 'onlineStatus': false};
     }
 
-    final snapshot = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
     if (snapshot.exists) {
       final data = snapshot.data()!;
@@ -32,11 +29,7 @@ class PatientDrawer extends StatelessWidget {
         'onlineStatus': data['onlineStatus'] ?? false,
       };
     } else {
-      return {
-        'fullName': 'Patient',
-        'profileUrl': null,
-        'onlineStatus': false,
-      };
+      return {'fullName': 'Patient', 'profileUrl': null, 'onlineStatus': false};
     }
   }
 
@@ -46,14 +39,22 @@ class PatientDrawer extends StatelessWidget {
       child: FutureBuilder<Map<String, dynamic>>(
         future: _fetchUserData(),
         builder: (context, snapshot) {
-          final fullName = snapshot.hasData ? snapshot.data!['fullName'] : 'Patient';
-          final profileUrl = snapshot.hasData ? snapshot.data!['profileUrl'] : null;
-          final onlineStatus = snapshot.hasData ? snapshot.data!['onlineStatus'] ?? false : false;
+          final fullName =
+              snapshot.hasData ? snapshot.data!['fullName'] : 'Patient';
+          final profileUrl =
+              snapshot.hasData ? snapshot.data!['profileUrl'] : null;
+          final onlineStatus =
+              snapshot.hasData
+                  ? snapshot.data!['onlineStatus'] ?? false
+                  : false;
 
           return Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 32,
+                ),
                 alignment: Alignment.centerLeft,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -62,11 +63,19 @@ class PatientDrawer extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 36,
-                          backgroundColor: Colors.blue,
-                          backgroundImage: profileUrl != null ? NetworkImage(profileUrl) : null,
-                          child: profileUrl == null
-                              ? const Icon(Icons.person, color: Colors.white, size: 36)
-                              : null,
+                          backgroundColor: Colors.teal.shade400,
+                          backgroundImage:
+                              profileUrl != null
+                                  ? NetworkImage(profileUrl)
+                                  : null,
+                          child:
+                              profileUrl == null
+                                  ? const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 36,
+                                  )
+                                  : null,
                         ),
                         if (onlineStatus)
                           Positioned(
@@ -78,7 +87,10 @@ class PatientDrawer extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: Colors.green,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
                               ),
                             ),
                           ),
@@ -105,68 +117,83 @@ class PatientDrawer extends StatelessWidget {
                     _buildDrawerCard(
                       icon: Icons.person,
                       label: 'My Profile',
+                      iconColor: Colors.teal,
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const ProfileScreen(),
+                          ),
                         );
                       },
                     ),
                     _buildDrawerCard(
                       icon: Icons.settings,
                       label: 'Settings',
+                      iconColor: Colors.blue,
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
                         );
                       },
                     ),
                     _buildDrawerCard(
                       icon: Icons.description,
                       label: 'Terms & Conditions',
+                      iconColor: Colors.indigo,
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const TermsAndConditionsScreen()),
+                          MaterialPageRoute(
+                            builder:
+                                (context) => const TermsAndConditionsScreen(),
+                          ),
                         );
-                      }
+                      },
                     ),
                     _buildDrawerCard(
                       icon: Icons.help_outline,
                       label: 'Help & FAQ',
+                      iconColor: Colors.green,
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const HelpFaqScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const HelpFaqScreen(),
+                          ),
                         );
-
-                      }
+                      },
                     ),
                     _buildDrawerCard(
                       icon: Icons.info,
                       label: 'About',
+                      iconColor: Colors.blueGrey,
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const AboutScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const AboutScreen(),
+                          ),
                         );
-
-                      }
+                      },
                     ),
                   ],
                 ),
               ),
               const Divider(thickness: 1.2),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 12,
+                ),
                 child: _buildDrawerCard(
                   icon: Icons.logout,
                   label: 'Logout',
                   iconColor: Colors.red,
                   onTap: () => _logout(context),
-
-
                 ),
               ),
             ],
@@ -185,14 +212,15 @@ class PatientDrawer extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Card(
-        elevation: 3,
+        elevation: 2,
+        color: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: const EdgeInsets.symmetric(vertical: 6),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           child: Row(
             children: [
-              Icon(icon, size: 28, color: iconColor ?? Colors.blue.shade700),
+              Icon(icon, size: 28, color: iconColor ?? Colors.teal),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
@@ -213,6 +241,6 @@ Future<void> _logout(BuildContext context) async {
   await FirebaseAuth.instance.signOut();
   Navigator.of(context).pushAndRemoveUntil(
     MaterialPageRoute(builder: (context) => LoginPage()),
-        (route) => false,
+    (route) => false,
   );
 }

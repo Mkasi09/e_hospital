@@ -13,17 +13,14 @@ class AppointmentsAndRequestsScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Appointments / Requests'),
           bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Appointments'),
-              Tab(text: 'Service Requests'),
-            ],
+            indicatorColor: Colors.white, // Underline color
+            labelColor: Colors.white, // Selected tab text color
+            unselectedLabelColor: Colors.white70, // Unselected tab text color
+            tabs: [Tab(text: 'Appointments'), Tab(text: 'Service Requests')],
           ),
         ),
         body: const TabBarView(
-          children: [
-            AppointmentsTab(),
-            ServiceRequestsTab(),
-          ],
+          children: [AppointmentsTab(), ServiceRequestsTab()],
         ),
       ),
     );

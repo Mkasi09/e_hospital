@@ -29,12 +29,32 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
   Map<String, String>? _selectedDoctor;
   DateTime? _selectedDate;
   String? _selectedTime;
+  String? _appointmentType;
+  int? _currentFee;
+
   final TextEditingController _reasonController = TextEditingController();
 
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
   List<String> _bookedSlots = [];
+
+  final List<String> _appointmentTypes = [
+    "Consultation",
+    "Follow-up",
+    "Checkup-up",
+    "Treatment",
+    "Emergency",
+  ];
+
+  // 🆕 Fees for each type
+  final Map<String, int> _appointmentFees = {
+    "Consultation": 50,
+    "Follow-up": 30,
+    "Checkup-up": 40,
+    "Treatment": 70,
+    "Emergency": 100,
+  };
 
   @override
   void initState() {
@@ -43,13 +63,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
     if (widget.isRescheduling && widget.existingData != null) {
       final data = widget.existingData!;
       _selectedHospital = data['hospital'];
-      _selectedDoctor = {
-        'name': data['doctor'],
-        'specialty': '',
-      }; // You can fetch actual specialty if needed
+      _selectedDoctor = {'name': data['doctor'], 'specialty': ''};
       _selectedDate = (data['date'] as Timestamp).toDate();
       _selectedTime = data['time'];
       _reasonController.text = data['reason'] ?? '';
+      _appointmentType = data['appointmentType'];
+
+      // 🆕 Set the fee if type exists
+      if (_appointmentType != null &&
+          _appointmentFees.containsKey(_appointmentType)) {
+        _currentFee = _appointmentFees[_appointmentType]!;
+      }
 
       AppointmentService.fetchBookedSlots(
         _selectedDoctor!['name']!,
@@ -73,22 +97,25 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
     _reasonController.dispose();
     super.dispose();
   }
+
   void _loadBookedSlots() async {
     if (_selectedDoctor != null && _selectedDate != null) {
       final slots = await AppointmentService.fetchBookedSlots(
-        _selectedDoctor!['id']!, // <-- FIXED
+        _selectedDoctor!['id']!,
         _selectedDate!,
       );
-      print('Booked slots fetched: $slots');
-      setState(() {
-        _bookedSlots = slots;
-      });
+      setState(() => _bookedSlots = slots);
     }
   }
 
-
-
   void _submitAppointment() async {
+    if (_appointmentType == null || _currentFee == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select an appointment type")),
+      );
+      return;
+    }
+
     bool success;
 
     if (widget.isRescheduling && widget.appointmentId != null) {
@@ -100,6 +127,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
         newDate: _selectedDate!,
         newTime: _selectedTime!,
         reasonController: _reasonController,
+        appointmentType: _appointmentType!,
+        fee: _currentFee!,
       );
     } else {
       success = await AppointmentService.submitAppointment(
@@ -109,6 +138,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
         selectedDate: _selectedDate,
         selectedTime: _selectedTime,
         reasonController: _reasonController,
+        appointmentType: _appointmentType!,
+        fee: _currentFee!,
       );
     }
 
@@ -118,11 +149,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
         _selectedDoctor = null;
         _selectedDate = null;
         _selectedTime = null;
+        _appointmentType = null;
+        _currentFee = null;
         _reasonController.clear();
         _bookedSlots = [];
       });
     } else if (success) {
-      Navigator.of(context).pop(); // return to detail screen or list
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Appointment rescheduled successfully')),
       );
@@ -132,15 +165,23 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Book Appointment'), centerTitle: true),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
+      appBar: AppBar(
+        title: const Text('Book Appointment'),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF00796B),
+        elevation: 4,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Container(
+        color: const Color(0xFFE0F2F1),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-
-             /*HospitalDropdown(
+              HospitalDropdown(
                 selectedHospital: _selectedHospital,
                 onHospitalSelected: (hospital, doctors) {
                   setState(() {
@@ -148,7 +189,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                     _selectedDoctor = null;
                   });
                 },
-              ),*/
+              ),
               const SizedBox(height: 16),
               DoctorDropdown(
                 hospital: _selectedHospital,
@@ -160,17 +201,13 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                   _loadBookedSlots();
                 },
               ),
-
-
-
               const SizedBox(height: 16),
               DatePickerTile(
                 selectedDate: _selectedDate,
                 onDatePicked: (date) {
                   setState(() => _selectedDate = date);
-                  _loadBookedSlots(); // This will handle everything now
+                  _loadBookedSlots();
                 },
-
               ),
               const SizedBox(height: 16),
               if (_selectedDoctor != null && _selectedDate != null)
@@ -178,24 +215,62 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                   selectedDate: _selectedDate!,
                   bookedSlots: _bookedSlots,
                   selectedTime: _selectedTime,
-                  onSlotSelected: (slot) => setState(() => _selectedTime = slot),
+                  onSlotSelected:
+                      (slot) => setState(() => _selectedTime = slot),
                 ),
+              const SizedBox(height: 16),
+
+              // 🆕 Appointment Type Dropdown
+              Container(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(10),
+                  color: Theme.of(context).colorScheme.surface,
+                ),
+                child: DropdownButtonFormField<String>(
+                  value: _appointmentType,
+                  decoration: const InputDecoration.collapsed(
+                    hintText: "Select Appointment Type",
+                  ),
+                  items:
+                      _appointmentTypes.map((type) {
+                        return DropdownMenuItem(value: type, child: Text(type));
+                      }).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _appointmentType = val;
+                      _currentFee = val != null ? _appointmentFees[val] : null;
+                    });
+                  },
+                ),
+              ),
+
               const SizedBox(height: 16),
               ReasonForVisitField(controller: _reasonController),
               const SizedBox(height: 24),
 
-              // 🆕 Fee Text
+              // 🆕 Dynamic Fee Display
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 alignment: Alignment.centerLeft,
                 child: Row(
-                  children: const [
-                    SizedBox(width: 16),
-                    Icon(Icons.payment, color: Colors.green),
-                    SizedBox(width:8),
+                  children: [
+                    const SizedBox(width: 16),
+                    const Icon(Icons.payment, color: Colors.green),
+                    const SizedBox(width: 8),
                     Text(
-                      'Consultation Fee: R50',
-                      style: TextStyle(
+                      _appointmentType == null
+                          ? 'Please select an appointment type'
+                          : '$_appointmentType Fee: R${_currentFee ?? 0}',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.green,
@@ -209,10 +284,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
               ElevatedButton(
                 onPressed: _submitAppointment,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
                 ),
-                child: const Text('Book Appointment & Pay R50'),
-
+                child: Text(
+                  _currentFee == null
+                      ? 'Book Appointment'
+                      : 'Book Appointment & Pay R$_currentFee',
+                ),
               ),
             ],
           ),

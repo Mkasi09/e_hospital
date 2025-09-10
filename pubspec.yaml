@@ -11,13 +11,15 @@ environment:
 
 
 dependencies:
+  flutter_keyboard_visibility:
+    path: plugins/flutter_keyboard_visibility/flutter_keyboard_visibility
   flutter:
     sdk: flutter
   firebase_core: ^3.8.0
   firebase_auth: ^5.3.3
   cloud_firestore: ^5.5.8
   url_launcher: ^6.2.6
-  #flutter_typeahead: ^4.2.8
+  flutter_typeahead: ^4.2.8
   intl: ^0.18.0
   file_picker: ^10.1.9
   firebase_storage: ^12.3.6
@@ -37,7 +39,6 @@ dependencies:
 
 
 
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -49,6 +50,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/icon2.png
     - assets/icon.png
     - assets/hos.json
 
@@ -59,3 +61,7 @@ platforms:
   linux: false
   macos: false
   windows: false
+
+dependency_overrides:
+  flutter_keyboard_visibility:
+    path: plugins/flutter_keyboard_visibility/flutter_keyboard_visibility

@@ -4,17 +4,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class AppointmentService {
-  static final CollectionReference _appointmentsRef =
-  FirebaseFirestore.instance.collection('appointments');
-  static final CollectionReference _notificationsRef =
-  FirebaseFirestore.instance.collection('notifications');
+  static final CollectionReference _appointmentsRef = FirebaseFirestore.instance
+      .collection('appointments');
+  static final CollectionReference _notificationsRef = FirebaseFirestore
+      .instance
+      .collection('notifications');
 
-  static Future<List<String>> fetchBookedSlots(String doctorId, DateTime selectedDate) async {
-    // Existing implementation remains the same
-    final snapshot = await FirebaseFirestore.instance
-        .collection('appointments')
-        .where('doctorId', isEqualTo: doctorId)
-        .get();
+  static Future<List<String>> fetchBookedSlots(
+    String doctorId,
+    DateTime selectedDate,
+  ) async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('appointments')
+            .where('doctorId', isEqualTo: doctorId)
+            .get();
 
     final bookedTimes = <String>[];
 
@@ -53,6 +57,7 @@ class AppointmentService {
     });
   }
 
+  // 🆕 Added `fee` param
   static Future<bool> submitAppointment({
     required BuildContext context,
     required String? selectedHospital,
@@ -60,8 +65,15 @@ class AppointmentService {
     required DateTime? selectedDate,
     required String? selectedTime,
     required TextEditingController reasonController,
+    required String appointmentType,
+    required int fee,
   }) async {
-    if ([selectedHospital, selectedDoctor, selectedDate, selectedTime].contains(null) ||
+    if ([
+          selectedHospital,
+          selectedDoctor,
+          selectedDate,
+          selectedTime,
+        ].contains(null) ||
         reasonController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all the fields.')),
@@ -83,28 +95,34 @@ class AppointmentService {
           SnackBar(
             content: Text(
               'You have an outstanding balance of R${outstanding.toStringAsFixed(2)}. '
-                  'Please pay it before booking a new appointment.',
+              'Please pay it before booking a new appointment.',
             ),
           ),
         );
         return false;
       }
 
-      // Proceed with booking
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      // Get patient name
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .get();
       final patientName = userDoc.data()?['fullName'] ?? 'Unknown Patient';
 
-      final doctorSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('name', isEqualTo: selectedDoctor)
-          .limit(1)
-          .get();
+      // Find doctorId
+      final doctorSnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('name', isEqualTo: selectedDoctor)
+              .limit(1)
+              .get();
 
       if (doctorSnapshot.docs.isEmpty) throw 'Doctor not found';
-
       final doctorDoc = doctorSnapshot.docs.first;
       final doctorId = doctorDoc.id;
 
+      // Appointment datetime
       final parts = selectedTime!.split(':');
       final appointmentDateTime = DateTime(
         selectedDate!.year,
@@ -113,18 +131,27 @@ class AppointmentService {
         int.parse(parts[0]),
         int.parse(parts[1]),
       );
-// Check if the selected slot is already booked
-      final startOfDay = DateTime(selectedDate!.year, selectedDate.month, selectedDate.day);
+
+      // Check conflict
+      final startOfDay = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+      );
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
-      final conflictSnapshot = await _appointmentsRef
-          .where('doctorId', isEqualTo: doctorId)
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
-          .get();
+      final conflictSnapshot =
+          await _appointmentsRef
+              .where('doctorId', isEqualTo: doctorId)
+              .where(
+                'date',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+              )
+              .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+              .get();
 
       final isConflicting = conflictSnapshot.docs.any(
-            (doc) => doc['time'] == selectedTime,
+        (doc) => doc['time'] == selectedTime,
       );
 
       if (isConflicting) {
@@ -146,22 +173,24 @@ class AppointmentService {
         'status': 'pending',
         'userId': userId,
         'patientName': patientName,
+        'appointmentType': appointmentType, // 🆕 Save type
+        'fee': fee, // 🆕 Save fee
       });
 
-      // Add R50 consultation fee to outstanding balance
       await updateOutstandingBalance(
         userId: userId,
         doctorName: selectedDoctor!,
-        amount: 50.0,
+        appointmentType: appointmentType, // pass selected type
+        fee: fee.toDouble(), // pass selected fee
         appointmentId: appointmentRef.id,
       );
 
-
-      // Send notification to patient
+      // Send notifications
       await _sendNotification(
         userId: userId,
         title: 'Appointment Confirmed',
-        body: 'Your appointment with Dr. $selectedDoctor at $selectedHospital on ${DateFormat('MMM dd, yyyy').format(selectedDate)} at $selectedTime has been booked.',
+        body:
+            'Your appointment with Dr. $selectedDoctor at $selectedHospital on ${DateFormat('MMM dd, yyyy').format(selectedDate)} at $selectedTime has been booked.',
         type: 'appointment',
         additionalData: {
           'appointmentId': appointmentRef.id,
@@ -169,11 +198,11 @@ class AppointmentService {
         },
       );
 
-      // Send notification to doctor
       await _sendNotification(
         userId: doctorId,
         title: 'New Appointment',
-        body: '$patientName has booked an appointment on ${DateFormat('MMM dd, yyyy').format(selectedDate)} at $selectedTime.',
+        body:
+            '$patientName has booked an appointment on ${DateFormat('MMM dd, yyyy').format(selectedDate)} at $selectedTime.',
         type: 'doctor_appointment',
         additionalData: {
           'appointmentId': appointmentRef.id,
@@ -184,21 +213,21 @@ class AppointmentService {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Appointment booked successfully. Your new outstanding balance is R${outstanding.toStringAsFixed(2)}.',
+            'Appointment booked successfully. Your new outstanding balance is R${(outstanding + fee).toStringAsFixed(2)}.',
           ),
         ),
       );
 
       return true;
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to book appointment: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to book appointment: $e')));
       return false;
     }
   }
 
-
+  // 🆕 Added `fee` param
   static Future<bool> rescheduleAppointment({
     required BuildContext context,
     required String appointmentId,
@@ -207,6 +236,8 @@ class AppointmentService {
     required DateTime newDate,
     required String newTime,
     required TextEditingController reasonController,
+    required String appointmentType,
+    required int fee,
   }) async {
     try {
       final parts = newTime.split(':');
@@ -221,14 +252,18 @@ class AppointmentService {
       final startOfDay = DateTime(newDate.year, newDate.month, newDate.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
-      final snapshot = await _appointmentsRef
-          .where('doctor', isEqualTo: newDoctor)
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
-          .get();
+      final snapshot =
+          await _appointmentsRef
+              .where('doctor', isEqualTo: newDoctor)
+              .where(
+                'date',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+              )
+              .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+              .get();
 
       final conflicting = snapshot.docs.any(
-            (doc) => doc.id != appointmentId && doc['time'] == newTime,
+        (doc) => doc.id != appointmentId && doc['time'] == newTime,
       );
 
       if (conflicting) {
@@ -253,25 +288,26 @@ class AppointmentService {
         'time': newTime,
         'reason': reasonController.text.trim(),
         'updatedAt': Timestamp.now(),
+        'appointmentType': appointmentType, // 🆕 Save type
+        'fee': fee, // 🆕 Save fee
       });
 
       // Send notification to patient about reschedule
       await _sendNotification(
         userId: patientId,
         title: 'Appointment Rescheduled',
-        body: 'Your appointment with Dr. $newDoctor has been rescheduled to ${DateFormat('MMM dd, yyyy').format(newDate)} at $newTime.',
+        body:
+            'Your appointment with Dr. $newDoctor has been rescheduled to ${DateFormat('MMM dd, yyyy').format(newDate)} at $newTime.',
         type: 'appointment',
-        additionalData: {
-          'appointmentId': appointmentId,
-          'doctorId': doctorId,
-        },
+        additionalData: {'appointmentId': appointmentId, 'doctorId': doctorId},
       );
 
       // Send notification to doctor about reschedule
       await _sendNotification(
         userId: doctorId,
         title: 'Appointment Rescheduled',
-        body: '$patientName has rescheduled their appointment to ${DateFormat('MMM dd, yyyy').format(newDate)} at $newTime.',
+        body:
+            '$patientName has rescheduled their appointment to ${DateFormat('MMM dd, yyyy').format(newDate)} at $newTime.',
         type: 'doctor_appointment',
         additionalData: {
           'appointmentId': appointmentId,
@@ -290,14 +326,14 @@ class AppointmentService {
       return false;
     }
   }
-  // Get user's outstanding balance
-  // Fetch total outstanding balance from 'bills' collection
+
   static Future<double> fetchOutstandingBalance(String userId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('bills')
-        .where('userId', isEqualTo: userId)
-        .where('status', isEqualTo: 'Unpaid')
-        .get();
+    final querySnapshot =
+        await FirebaseFirestore.instance
+            .collection('bills')
+            .where('userId', isEqualTo: userId)
+            .where('status', isEqualTo: 'Unpaid')
+            .get();
 
     double total = 0.0;
     for (var doc in querySnapshot.docs) {
@@ -308,23 +344,22 @@ class AppointmentService {
     return total;
   }
 
-// Add a new bill to 'bills' collection (e.g., for consultation fee)
   static Future<void> updateOutstandingBalance({
     required String userId,
     required String doctorName,
-    required double amount,
+    required String appointmentType, // 🆕 include type
+    required double fee, // 🆕 include fee
     required String appointmentId,
   }) async {
     await FirebaseFirestore.instance.collection('bills').add({
       'userId': userId,
       'doctorName': doctorName,
       'appointmentId': appointmentId,
-      'title': 'Consultation Fee - $doctorName',
-      'amount': amount,
+      'appointmentType': appointmentType, // 🆕 save type
+      'title': '$appointmentType Fee - $doctorName', // dynamic title
+      'amount': fee, // dynamic amount
       'status': 'Unpaid',
       'timestamp': Timestamp.now(),
     });
   }
-
-
 }

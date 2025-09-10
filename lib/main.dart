@@ -10,12 +10,9 @@ import 'screens/patient/home/home.dart';
 import 'firebase_auth/AuthenticationWrapper.dart';
 import 'firebase_options.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
     ChangeNotifierProvider(
@@ -34,8 +31,23 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'eHospital',
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
+      theme: ThemeData(
+        scaffoldBackgroundColor: Color(0xFFE0F2F1), // ✅ Screen background
+        primarySwatch: Colors.teal, // ✅ Widgets & buttons teal
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF00796B), // ✅ AppBar teal
+          foregroundColor: Colors.white, // ✅ AppBar text/icons white
+          elevation: 0,
+        ),
+      ),
+      darkTheme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: Colors.black, // ✅ Dark mode background
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+      ),
       themeMode: themeNotifier.themeMode,
       debugShowCheckedModeBanner: false,
       home: AuthenticationWrapper(),
