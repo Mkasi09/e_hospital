@@ -325,6 +325,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               );
             },
           ),
+          Text("Ai", style: TextStyle(color: Colors.blueAccent)),
         ],
       ),
     );

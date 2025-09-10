@@ -56,7 +56,7 @@ flutter:
 
 platforms:
   android: true
-  ios: false
+  ios: true
   web: false
   linux: false
   macos: false
