@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../../widgets/drawer.dart';
 import '../../../widgets/home_tile.dart';
-import '../../patient/my_appointments/appointments.dart';
+import '../../patient/my_appointments/appointments_and_requests.dart';
 import '../doctors_notifications/doctors_notification_screen.dart';
 import '../doctors_notifications/notification_bell.dart';
 import '../patients/Doctors_patient_screen.dart';

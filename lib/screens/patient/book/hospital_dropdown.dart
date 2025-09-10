@@ -1,5 +1,5 @@
-/*import 'package:flutter/material.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:flutter/material.dart';
+//import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HospitalDropdown extends StatelessWidget {
@@ -35,7 +35,7 @@ class HospitalDropdown extends StatelessWidget {
             child: const Icon(Icons.local_hospital, color: Colors.blueAccent),
           ),
           const SizedBox(width: 14),
-          Expanded(
+         /* Expanded(
             child: TypeAheadFormField<String>(
               textFieldConfiguration: TextFieldConfiguration(
                 controller: controller,
@@ -93,10 +93,9 @@ class HospitalDropdown extends StatelessWidget {
               validator: (value) =>
               value!.isEmpty ? 'Please select a hospital' : null,
             ),
-          ),
+          ),*/
         ],
       ),
     );
   }
 }
-*/

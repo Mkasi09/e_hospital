@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 import '../book/book_appointment.dart';
 
@@ -15,12 +16,15 @@ class AppointmentDetailScreen extends StatelessWidget {
 
   Future<void> _deleteAppointment(BuildContext context) async {
     try {
-      await FirebaseFirestore.instance.collection('appointments').doc(docId).delete();
+      await FirebaseFirestore.instance
+          .collection('appointments')
+          .doc(docId)
+          .delete();
       if (context.mounted) {
         Navigator.of(context).pop(); // back to appointments list
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Appointment deleted')));
       }
     } catch (e) {
       if (context.mounted) {
@@ -30,6 +34,7 @@ class AppointmentDetailScreen extends StatelessWidget {
       }
     }
   }
+
   Color _getStatusColor(String? status) {
     switch (status?.toLowerCase()) {
       case 'confirmed':
@@ -75,11 +80,10 @@ class AppointmentDetailScreen extends StatelessWidget {
     final date = timestamp.toDate();
     final time = data['time'] ?? '';
     final reason = data['reason'] ?? 'No reason provided';
+    final formattedDate = DateFormat('EEE, MMM d, yyyy').format(date);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Appointment Details'),
-      ),
+      appBar: AppBar(title: const Text('Appointment Details')),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -87,7 +91,9 @@ class AppointmentDetailScreen extends StatelessWidget {
           children: [
             Card(
               elevation: 3,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -104,7 +110,10 @@ class AppointmentDetailScreen extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.info_outline, color: Colors.deepPurple),
+                        const Icon(
+                          Icons.info_outline,
+                          color: Colors.deepPurple,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Status: ',
@@ -126,18 +135,18 @@ class AppointmentDetailScreen extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text(
                       data['hospital'] ?? 'Unknown Hospital',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                     const Divider(height: 30, thickness: 1),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today, color: Colors.blueGrey),
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Colors.blueGrey,
+                        ),
                         const SizedBox(width: 8),
                         Text(
-                          '${date.toLocal().toString().split(' ')[0]}',
+                          '$formattedDate',
                           style: const TextStyle(fontSize: 16),
                         ),
                         const SizedBox(width: 30),
@@ -149,12 +158,18 @@ class AppointmentDetailScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                     const Text(
                       'Reason for Appointment:',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       reason,
-                      style: const TextStyle(fontSize: 15, color: Colors.black87),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.black87,
+                      ),
                     ),
                   ],
                 ),
@@ -173,7 +188,11 @@ class AppointmentDetailScreen extends StatelessWidget {
                   children: const [
                     Icon(Icons.warning, color: Colors.deepOrange),
                     SizedBox(width: 10),
-                    Expanded(child: Text("Doctor unavailable at selected time. Please reschedule."))
+                    Expanded(
+                      child: Text(
+                        "Doctor unavailable at selected time. Please reschedule.",
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -187,11 +206,12 @@ class AppointmentDetailScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BookAppointmentScreen(
-                            isRescheduling: true,
-                            appointmentId: docId,
-                            existingData: data,
-                          ),
+                          builder:
+                              (context) => BookAppointmentScreen(
+                                isRescheduling: true,
+                                appointmentId: docId,
+                                existingData: data,
+                              ),
                         ),
                       );
                     },
@@ -201,7 +221,9 @@ class AppointmentDetailScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       foregroundColor: Colors.white,
                       backgroundColor: Colors.blueAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
@@ -212,23 +234,28 @@ class AppointmentDetailScreen extends StatelessWidget {
                     onPressed: () async {
                       final confirm = await showDialog<bool>(
                         context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Cancel Appointment'),
-                          content: const Text('Are you sure you want to cancel this appointment?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('No'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text(
-                                'Yes',
-                                style: TextStyle(color: Colors.red),
+                        builder:
+                            (context) => AlertDialog(
+                              title: const Text('Cancel Appointment'),
+                              content: const Text(
+                                'Are you sure you want to cancel this appointment?',
                               ),
+                              actions: [
+                                TextButton(
+                                  onPressed:
+                                      () => Navigator.of(context).pop(false),
+                                  child: const Text('No'),
+                                ),
+                                TextButton(
+                                  onPressed:
+                                      () => Navigator.of(context).pop(true),
+                                  child: const Text(
+                                    'Yes',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
                       );
                       if (confirm == true) {
                         await _deleteAppointment(context);
@@ -240,16 +267,17 @@ class AppointmentDetailScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       backgroundColor: Colors.red[700],
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
     );
   }
-
 }
