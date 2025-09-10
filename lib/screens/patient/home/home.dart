@@ -1,16 +1,16 @@
-import 'package:e_hospital/screens/patient/chat/chats.dart';
-import 'package:e_hospital/screens/patient/chat/inbox.dart';
-import 'package:e_hospital/screens/patient/my_appointments/appointments.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:e_hospital/screens/patient/ai/ai_chatbot.dart';
+import 'package:e_hospital/screens/patient/chat/chats.dart'; // Assuming your chatbot screen
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../doctor/chats/doctor_inbox.dart';
 import '../../doctor/doctors_notifications/doctors_notification_screen.dart';
 import '../book/book_appointment.dart';
 import '../files/files_and_prescriptions.dart';
 import '../../../widgets/drawer.dart';
 import '../../../widgets/home_tile.dart';
+import '../my_appointments/appointments.dart';
 import '../payments/billing_payment.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PatientHomeScreen extends StatelessWidget {
   const PatientHomeScreen({super.key});
@@ -36,7 +36,7 @@ class PatientHomeScreen extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>  NotificationScreen()),
+                MaterialPageRoute(builder: (context) => NotificationScreen()),
               );
             },
           ),
@@ -54,7 +54,7 @@ class PatientHomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text('What would you like to do today?'),
-            const SizedBox(height: 20),
+            const SizedBox(height: 60),
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -70,28 +70,36 @@ class PatientHomeScreen extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => const BookAppointmentScreen()),
                       );
                     },
-
                   ),
                   DashboardCard(
                     icon: Icons.edit_calendar,
                     label: 'My Appointments',
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AppointmentsScreen()),
-                      );},
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AppointmentsScreen()),
+                      );
+                    },
                   ),
                   DashboardCard(
                     icon: Icons.folder_shared,
                     label: 'Files & Prescriptions',
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const FilesAndPrescriptionsScreen()),
-                      );},
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const FilesAndPrescriptionsScreen()),
+                      );
+                    },
                   ),
                   DashboardCard(
                     icon: Icons.chat,
                     label: 'Chat with Doctor',
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => InboxScreen()),
-                      );},
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => InboxScreen()),
+                      );
+                    },
                   ),
                   DashboardCard(
                     icon: Icons.local_hospital,
@@ -116,6 +124,39 @@ class PatientHomeScreen extends StatelessWidget {
           ],
         ),
       ),
+
+      // 💬 AI Chatbot Button on Bottom Right
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(top: 90),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+            );
+          },
+          tooltip: "Chatbot", // Shows text on hover/long press
+          backgroundColor: Colors.blueAccent,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.smart_toy, color: Colors.white, size: 28),
+              SizedBox(height: 2),
+              Text(
+                "AI",
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+
+
     );
   }
 }
