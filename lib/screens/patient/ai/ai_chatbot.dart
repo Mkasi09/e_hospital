@@ -29,22 +29,22 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     _controller.clear();
 
     final response = await http.post(
-      Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      Uri.parse(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey",
+      ),
+      headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "contents": [
           {
             "parts": [
               {
                 "text":
-                "You are a health assistant. Only answer health-related questions about wellness, fitness, nutrition, or medical advice. If the question is unrelated to health, politely reply: 'I can only answer health-related questions. Please ask me about health, fitness, nutrition, or medical topics.'"
+                    "You are a health assistant. Only answer health-related questions about wellness, fitness, nutrition, or medical advice. If the question is unrelated to health, politely reply: 'I can only answer health-related questions. Please ask me about health, fitness, nutrition, or medical topics.'",
               },
-              {"text": text}
-            ]
-          }
-        ]
+              {"text": text},
+            ],
+          },
+        ],
       }),
     );
 
@@ -80,25 +80,30 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               itemBuilder: (context, index) {
                 final msg = messages[index];
                 return Align(
-                  alignment: msg["sender"] == "user"
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
+                  alignment:
+                      msg["sender"] == "user"
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    margin:
-                    const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 5,
+                      horizontal: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: msg["sender"] == "user"
-                          ? Colors.blue
-                          : Colors.grey[300],
+                      color:
+                          msg["sender"] == "user"
+                              ? Colors.blue
+                              : Colors.grey[300],
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       msg["text"] ?? "",
                       style: TextStyle(
-                        color: msg["sender"] == "user"
-                            ? Colors.white
-                            : Colors.black,
+                        color:
+                            msg["sender"] == "user"
+                                ? Colors.white
+                                : Colors.black,
                       ),
                     ),
                   ),
@@ -114,12 +119,21 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
           Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _controller,
-                  onSubmitted: (text) => sendMessage(text),
-                  decoration: const InputDecoration(
-                    hintText: "Ask me about health...",
-                    border: OutlineInputBorder(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: TextField(
+                    controller: _controller,
+                    onSubmitted: (text) => sendMessage(text),
+                    decoration: InputDecoration(
+                      hintText: "Ask me about health...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
                   ),
                 ),
               ),
