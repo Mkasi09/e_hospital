@@ -19,7 +19,34 @@ class _PayFastWebViewState extends State<PayFastWebView> {
     _controller =
         WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..loadRequest(Uri.parse(widget.url));
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onNavigationRequest: (request) {
+                final url = request.url;
+
+                if (url.contains('return')) {
+                  Navigator.pop(context, true); // payment success
+                  return NavigationDecision.prevent;
+                }
+                if (url.contains('cancel')) {
+                  Navigator.pop(context, false); // payment canceled
+                  return NavigationDecision.prevent;
+                }
+                return NavigationDecision.navigate;
+              },
+              onWebResourceError: (error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to load payment page: ${error.description}',
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              },
+            ),
+          )
+          ..loadRequest(Uri.parse(widget.url)); // pass Uri here
   }
 
   @override

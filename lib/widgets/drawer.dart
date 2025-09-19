@@ -24,7 +24,7 @@ class PatientDrawer extends StatelessWidget {
     if (snapshot.exists) {
       final data = snapshot.data()!;
       return {
-        'fullName': data['name'] ?? 'Patient',
+        'fullName': data['fullName'] ?? 'Patient',
         'profileUrl': data['profilePicture'],
         'onlineStatus': data['onlineStatus'] ?? false,
       };

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:e_hospital/screens/patient/chat/chats.dart';
 import 'package:e_hospital/screens/patient/chat/inbox.dart';
+import 'package:e_hospital/screens/patient/emergency/emergeny_help.dart';
 import 'package:e_hospital/screens/patient/my_appointments/appointments_and_requests.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -291,7 +292,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           icon: Icons.local_hospital,
                           label: 'Emergency & Help',
                           color: Colors.red,
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const EmergencyHelpScreen(),
+                              ),
+                            );
+                          },
                         ),
                         DashboardCard(
                           icon: Icons.payment,
