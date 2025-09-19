@@ -3,9 +3,10 @@ import 'package:crypto/crypto.dart';
 
 class PayFastService {
   // Sandbox credentials
-  static const String merchantId = "10000100";
-  static const String merchantKey = "46f0cd694581a";
-  static const String passphrase = ""; // Sandbox passphrase is empty
+  static const String merchantId = "10035720";
+  static const String merchantKey = "oa528zbm3y8r9";
+  static const String passphrase =
+      "fnnnssffbsfb"; // Sandbox passphrase is empty
 
   static const String returnUrl = "https://yourapp.com/success";
   static const String cancelUrl = "https://yourapp.com/cancel";

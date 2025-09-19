@@ -12,7 +12,10 @@ class ChatbotScreen extends StatefulWidget {
 class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  List<Map<String, String>> messages = [];
+  List<Map<String, String>> messages = [
+    {"sender": "bot", "text": "Hi... How can we help you?"},
+  ];
+
   bool isLoading = false;
 
   // Replace this with your actual Gemini API key
