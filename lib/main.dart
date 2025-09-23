@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
       ),
       themeMode: themeNotifier.themeMode,
       debugShowCheckedModeBanner: false,
-      home: AuthenticationWrapper(),
+      home: PatientHomeScreen(),
     );
   }
 }
