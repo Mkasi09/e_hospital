@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:e_hospital/firebase_auth/signin.dart';
 import 'package:e_hospital/screens/admin/home/doctors/doctors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +36,8 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
 
     try {
       final apiKey = 'AIzaSyAmkucc7_QyTmr6f7oywJdUxhjHXyugKMc'; // Replace this
-      final url = 'https://identitytoolkit.googleapis.com/v1/accounts:update?key=$apiKey';
+      final url =
+          'https://identitytoolkit.googleapis.com/v1/accounts:update?key=$apiKey';
 
       final response = await http.post(
         Uri.parse(url),
@@ -59,20 +61,26 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
         // Refresh Firebase Auth session
         await FirebaseAuth.instance.signOut();
 
+        await FirebaseAuth.instance.signOut();
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(
-                'Password updated successfully. Please sign in again.')),
+            const SnackBar(
+              content: Text(
+                'Password updated successfully. Please sign in again.',
+              ),
+            ),
           );
 
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const DoctorsHomepage()),
+            MaterialPageRoute(builder: (context) => const LoginPage()),
           );
         }
       } else {
         throw Exception(
-            responseData['error']['message'] ?? 'Password update failed');
+          responseData['error']['message'] ?? 'Password update failed',
+        );
       }
     } catch (e) {
       setState(() {
@@ -115,10 +123,7 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                   const SizedBox(height: 10),
                   const Text(
                     'Please set a secure password to continue.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
                   ),
                   const SizedBox(height: 30),
                   TextFormField(
@@ -158,27 +163,33 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: _loading
-                          ? null
-                          : () {
-                        if (_formKey.currentState!.validate()) {
-                          _updatePassword(_passwordController.text.trim());
-                        }
-                      },
-                      child: _loading
-                          ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                          : const Text(
-                        'Set New Password',
-                        style: TextStyle(fontSize: 16,
-                        color: Colors.white),
-                      ),
+                      onPressed:
+                          _loading
+                              ? null
+                              : () {
+                                if (_formKey.currentState!.validate()) {
+                                  _updatePassword(
+                                    _passwordController.text.trim(),
+                                  );
+                                }
+                              },
+                      child:
+                          _loading
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'Set New Password',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
                     ),
                   ),
                 ],
