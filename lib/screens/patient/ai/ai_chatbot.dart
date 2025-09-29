@@ -4,8 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'chatbubble.dart';
-
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({Key? key}) : super(key: key);
 
@@ -18,67 +16,43 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final ScrollController _scrollController = ScrollController();
   List<Map<String, String>> messages = [];
   final String apiKey = "AIzaSyA6tYsJWmtD8_VVurStHlfkRGjUqBsuu8I";
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    loadMessages();
   }
 
-  // Load messages from shared preferences
-  Future<void> _loadMessages() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? messagesJson = prefs.getString('chat_messages');
-
-      if (messagesJson != null && messagesJson.isNotEmpty) {
-        final List<dynamic> decodedMessages = json.decode(messagesJson);
-        setState(() {
-          messages = decodedMessages.map<Map<String, String>>((message) {
-            return Map<String, String>.from(message);
-          }).toList();
-          _isLoading = false;
-        });
-      } else {
-        // If no saved messages, add the initial greeting
-        setState(() {
-          messages.add({
-            "sender": "bot",
-            "text": "👋 Hello! I'm your health assistant. How can I help you today with health, fitness, nutrition, or wellness?",
-            "time": DateFormat('hh:mm a').format(DateTime.now()),
-          });
-          _isLoading = false;
-        });
-        _saveMessages(); // Save the initial message
-      }
-    } catch (e) {
-      print("Error loading messages: $e");
+  /// Load messages from SharedPreferences
+  Future<void> loadMessages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('chat_history');
+    if (data != null) {
       setState(() {
-        messages.add({
-          "sender": "bot",
-          "text": "👋 Hello! I'm your health assistant. How can I help you today with health, fitness, nutrition, or wellness?",
-          "time": DateFormat('hh:mm a').format(DateTime.now()),
-        });
-        _isLoading = false;
+        messages = List<Map<String, String>>.from(jsonDecode(data));
       });
+    } else {
+      // Add initial greeting if no saved messages
+      messages.add({
+        "sender": "bot",
+        "text":
+        "👋 Hello! I’m your health assistant. How can I help you today with health, fitness, nutrition, or wellness?",
+        "time": DateFormat('hh:mm a').format(DateTime.now()),
+      });
+      await saveMessages();
     }
   }
 
-  // Save messages to shared preferences
-  Future<void> _saveMessages() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String messagesJson = json.encode(messages);
-      await prefs.setString('chat_messages', messagesJson);
-    } catch (e) {
-      print("Error saving messages: $e");
-    }
+  /// Save messages to SharedPreferences
+  Future<void> saveMessages() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('chat_history', jsonEncode(messages));
   }
 
   Future<void> sendMessage(String text) async {
     if (text.isEmpty) return;
 
+    // Add user message & typing indicator
     setState(() {
       messages.add({
         "sender": "user",
@@ -87,13 +61,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       });
       messages.add({"sender": "bot", "text": "typing"});
     });
+    await saveMessages(); // save after adding user message & typing
 
     _controller.clear();
-    await _saveMessages(); // Save after adding new message
 
     // Multi-turn memory: last 5 messages
     List<Map<String, String>> memory = [];
-    int start = messages.length - 6; // last 5 + current user message
+    int start = messages.length - 6;
     if (start < 0) start = 0;
     for (int i = start; i < messages.length; i++) {
       if (messages[i]["text"] != "typing") {
@@ -110,73 +84,41 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     prompt += "User: $text\nBot:";
 
     // API call
-    try {
-      final response = await http.post(
-        Uri.parse(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({
-          "contents": [
-            {"parts": [{"text": prompt}]}
-          ]
-        }),
-      );
+    final response = await http.post(
+      Uri.parse(
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "contents": [
+          {"parts": [{"text": prompt}]}
+        ]
+      }),
+    );
 
-      String aiText = "Sorry, I couldn't respond.";
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        aiText = data['candidates'][0]['content']['parts'][0]['text'];
-      }
-
-      setState(() {
-        messages.removeLast(); // remove typing
-        messages.add({
-          "sender": "bot",
-          "text": aiText,
-          "time": DateFormat('hh:mm a').format(DateTime.now()),
-        });
-      });
-
-      await _saveMessages(); // Save after bot response
-
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent + 80,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    } catch (e) {
-      print("Error sending message: $e");
-      setState(() {
-        messages.removeLast(); // remove typing
-        messages.add({
-          "sender": "bot",
-          "text": "Sorry, I encountered an error. Please try again.",
-          "time": DateFormat('hh:mm a').format(DateTime.now()),
-        });
-      });
-      await _saveMessages(); // Save error message
+    String aiText = "Sorry, I couldn't respond.";
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      aiText = data['candidates'][0]['content']['parts'][0]['text'];
     }
-  }
 
-  // Add a method to clear conversation if needed
-  Future<void> _clearConversation() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('chat_messages');
-      setState(() {
-        messages.clear();
-        messages.add({
-          "sender": "bot",
-          "text": "👋 Hello! I'm your health assistant. How can I help you today with health, fitness, nutrition, or wellness?",
-          "time": DateFormat('hh:mm a').format(DateTime.now()),
-        });
+    // Remove typing & add bot reply, then save
+    setState(() {
+      messages.removeLast(); // remove typing
+      messages.add({
+        "sender": "bot",
+        "text": aiText,
+        "time": DateFormat('hh:mm a').format(DateTime.now()),
       });
-      await _saveMessages(); // Save the cleared state
-    } catch (e) {
-      print("Error clearing conversation: $e");
-    }
+    });
+    await saveMessages(); // save after adding bot message
+
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent + 80,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -186,17 +128,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       appBar: AppBar(
         title: const Text("Health Chatbot"),
         backgroundColor: Colors.teal,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: _clearConversation,
-            tooltip: "Clear conversation",
-          ),
-        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: Column(
         children: [
           Expanded(
             child: ListView.builder(
@@ -216,14 +149,55 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                         padding: EdgeInsets.all(6.0),
                         child: CircleAvatar(
                           backgroundColor: Colors.teal,
-                          child: Icon(Icons.medical_services, color: Colors.white),
+                          child: Icon(Icons.medical_services,
+                              color: Colors.white),
                         ),
                       ),
-                    ChatBubble(
-                      text: msg["text"] ?? "",
-                      time: msg["time"] ?? "",
-                      isUser: isUser,
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75, // 75% of screen
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: isUser ? Colors.teal : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 4,
+                                offset: const Offset(2, 2),
+                              ),
+                            ],
+                          ),
+                          child: msg["text"] == "typing"
+                              ? const TypingIndicator()
+                              : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                msg["text"] ?? "",
+                                style: TextStyle(
+                                  color: isUser ? Colors.white : Colors.black87,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                msg["time"] ?? "",
+                                style: TextStyle(
+                                  color: isUser ? Colors.white70 : Colors.black45,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
+
                     if (isUser)
                       const Padding(
                         padding: EdgeInsets.all(6.0),
@@ -234,13 +208,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       ),
                   ],
                 );
-
               },
             ),
           ),
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
             color: Colors.white,
             child: Row(
               children: [

@@ -11,7 +11,8 @@ environment:
 
 
 dependencies:
-
+  flutter_keyboard_visibility:
+    path: plugins/flutter_keyboard_visibility/flutter_keyboard_visibility
   flutter:
     sdk: flutter
   firebase_core: ^3.8.0
@@ -35,9 +36,11 @@ dependencies:
   lottie: ^3.3.1
   http: ^1.4.0
   material_design_icons_flutter: ^7.0.7296
-  flutter_keyboard_visibility: ^6.0.0
+  webview_flutter: ^4.7.0
+  webview_flutter_wkwebview: ^3.10.0
+  webview_flutter_android: ^4.7.0
+  payfast: ^1.0.0
   shared_preferences: ^2.1.1
-
 
 
 
@@ -66,3 +69,4 @@ platforms:
 
 dependency_overrides:
   flutter_keyboard_visibility:
+    path: plugins/flutter_keyboard_visibility/flutter_keyboard_visibility

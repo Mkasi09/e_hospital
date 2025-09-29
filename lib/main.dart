@@ -2,6 +2,9 @@ import 'package:e_hospital/screens/settings/dark_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import 'firebase_auth/set_new_password.dart';
 import 'firebase_auth/signup.dart';
@@ -20,6 +23,15 @@ void main() async {
       child: const MyApp(),
     ),
   );
+
+  if (WebViewPlatform.instance == null) {
+    if (WebViewPlatform.instance == null) {
+      if (WebViewPlatform.instance == null) {
+        WebViewPlatform.instance = WebKitWebViewPlatform(); // iOS
+      }
+      WebViewPlatform.instance = AndroidWebViewPlatform(); // Android
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -1,13 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:e_hospital/screens/settings/about_screen.dart';
-import 'package:e_hospital/screens/settings/terms_and_conditons.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../firebase_auth/signin.dart';
 import '../screens/profile/profile.dart';
+import '../screens/settings/about_screen.dart';
 import '../screens/settings/doctor_settings_screen.dart';
 import '../screens/settings/help_faq_screen.dart';
+import '../screens/settings/terms_and_conditons.dart';
 
 class PatientDrawer extends StatelessWidget {
   const PatientDrawer({super.key});
@@ -24,7 +24,7 @@ class PatientDrawer extends StatelessWidget {
     if (snapshot.exists) {
       final data = snapshot.data()!;
       return {
-        'fullName': data['name'] ?? 'Patient',
+        'fullName': data['fullName'] ?? 'Patient',
         'profileUrl': data['profilePicture'],
         'onlineStatus': data['onlineStatus'] ?? false,
       };
@@ -36,6 +36,11 @@ class PatientDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: const Color(0xFFF8F9FA),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+      ),
+      elevation: 16,
       child: FutureBuilder<Map<String, dynamic>>(
         future: _fetchUserData(),
         builder: (context, snapshot) {
@@ -50,74 +55,133 @@ class PatientDrawer extends StatelessWidget {
 
           return Column(
             children: [
+              // Header with user info
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 32,
+                width: double.infinity,
+                padding: const EdgeInsets.only(
+                  top: 56,
+                  left: 24,
+                  right: 24,
+                  bottom: 24,
                 ),
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.teal.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Stack(
+                    Row(
                       children: [
-                        CircleAvatar(
-                          radius: 36,
-                          backgroundColor: Colors.teal.shade400,
-                          backgroundImage:
-                              profileUrl != null
-                                  ? NetworkImage(profileUrl)
-                                  : null,
-                          child:
-                              profileUrl == null
-                                  ? const Icon(
-                                    Icons.person,
-                                    color: Colors.white,
-                                    size: 36,
-                                  )
-                                  : null,
-                        ),
-                        if (onlineStatus)
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 14,
-                              height: 14,
+                        Stack(
+                          children: [
+                            Container(
+                              width: 70,
+                              height: 70,
                               decoration: BoxDecoration(
-                                color: Colors.green,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
+                                  color: Colors.teal.shade100,
+                                  width: 3,
                                 ),
                               ),
+                              child: CircleAvatar(
+                                radius: 32,
+                                backgroundColor: Colors.teal.shade50,
+                                backgroundImage:
+                                    profileUrl != null
+                                        ? NetworkImage(profileUrl)
+                                        : null,
+                                child:
+                                    profileUrl == null
+                                        ? Icon(
+                                          Icons.person,
+                                          color: Colors.teal.shade200,
+                                          size: 36,
+                                        )
+                                        : null,
+                              ),
                             ),
+                            if (onlineStatus)
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  width: 18,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome,',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                fullName,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        'Welcome,\n$fullName',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Patient Account',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.teal.shade600,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
+
+              // Menu items
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(16),
                   children: [
-                    _buildDrawerCard(
-                      icon: Icons.person,
+                    _buildDrawerItem(
+                      context,
+                      icon: Icons.person_outline,
                       label: 'My Profile',
-                      iconColor: Colors.teal,
+                      color: Colors.teal,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -127,10 +191,11 @@ class PatientDrawer extends StatelessWidget {
                         );
                       },
                     ),
-                    _buildDrawerCard(
-                      icon: Icons.settings,
+                    _buildDrawerItem(
+                      context,
+                      icon: Icons.settings_outlined,
                       label: 'Settings',
-                      iconColor: Colors.blue,
+                      color: Colors.blue,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -140,10 +205,11 @@ class PatientDrawer extends StatelessWidget {
                         );
                       },
                     ),
-                    _buildDrawerCard(
-                      icon: Icons.description,
+                    _buildDrawerItem(
+                      context,
+                      icon: Icons.description_outlined,
                       label: 'Terms & Conditions',
-                      iconColor: Colors.indigo,
+                      color: Colors.indigo,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -154,10 +220,11 @@ class PatientDrawer extends StatelessWidget {
                         );
                       },
                     ),
-                    _buildDrawerCard(
+                    _buildDrawerItem(
+                      context,
                       icon: Icons.help_outline,
                       label: 'Help & FAQ',
-                      iconColor: Colors.green,
+                      color: Colors.green,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -167,10 +234,11 @@ class PatientDrawer extends StatelessWidget {
                         );
                       },
                     ),
-                    _buildDrawerCard(
-                      icon: Icons.info,
+                    _buildDrawerItem(
+                      context,
+                      icon: Icons.info_outline,
                       label: 'About',
-                      iconColor: Colors.blueGrey,
+                      color: Colors.blueGrey,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -183,16 +251,15 @@ class PatientDrawer extends StatelessWidget {
                   ],
                 ),
               ),
-              const Divider(thickness: 1.2),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 12,
-                ),
-                child: _buildDrawerCard(
+
+              // Logout button
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: _buildDrawerItem(
+                  context,
                   icon: Icons.logout,
                   label: 'Logout',
-                  iconColor: Colors.red,
+                  color: Colors.red,
                   onTap: () => _logout(context),
                 ),
               ),
@@ -203,35 +270,40 @@ class PatientDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerCard({
+  Widget _buildDrawerItem(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    Color? iconColor,
+    required Color color,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        elevation: 2,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          child: Row(
-            children: [
-              Icon(icon, size: 28, color: iconColor ?? Colors.teal),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-            ],
+    return Card(
+      color: Color(0xFFE0F2F1),
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
           ),
+          child: Icon(icon, color: color, size: 20),
         ),
+        title: Text(
+          label,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey.shade400,
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

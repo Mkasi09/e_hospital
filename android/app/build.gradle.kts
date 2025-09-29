@@ -16,7 +16,7 @@ dependencies {
 }
 android {
     namespace = "com.example.e_hospital"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
 
