@@ -139,7 +139,7 @@ class AppointmentService {
         selectedDate.day,
       );
       final endOfDay = startOfDay.add(const Duration(days: 1));
-
+      final speciality = doctorDoc.data()?['speciality'] ?? 'General';
       final conflictSnapshot =
           await _appointmentsRef
               .where('doctorId', isEqualTo: doctorId)
@@ -173,8 +173,9 @@ class AppointmentService {
         'status': 'pending',
         'userId': userId,
         'patientName': patientName,
-        'appointmentType': appointmentType, // 🆕 Save type
-        'fee': fee, // 🆕 Save fee
+        'appointmentType': appointmentType,
+        'fee': fee,
+        'speciality': speciality, // 🆕 Save speciality from doctor
       });
 
       await updateOutstandingBalance(
