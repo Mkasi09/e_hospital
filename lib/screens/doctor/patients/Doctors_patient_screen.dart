@@ -32,116 +32,248 @@ class _PatientsScreenState extends State<PatientsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE0F2F1), // Screen background
       appBar: AppBar(
-        title: const Text('All Patients'),
+        title: const Text(
+          'All Patients',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF00796B),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
             onPressed: _toggleSearch,
           ),
         ],
-
       ),
       body: Column(
         children: [
           if (_isSearching)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by name or ID...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() => _searchQuery = '');
-                    },
-                  ),
-                  fillColor: Colors.white,
-                  filled: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00796B).withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                onChanged: (value) {
-                  setState(() => _searchQuery = value.toLowerCase().trim());
-                },
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or ID...',
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: Color(0xFF00796B),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.clear, color: Color(0xFF00796B)),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    ),
+                    fillColor: Colors.white,
+                    filled: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF00796B),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value.toLowerCase().trim());
+                  },
+                ),
               ),
             ),
           Expanded(
-            child: Container(
-              color: Colors.grey.shade100,
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .where('role', isEqualTo: 'patient')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading patients.'));
-                  }
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final patients = snapshot.data?.docs ?? [];
-
-                  final filteredPatients = patients.where((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final fullName = (data['fullName'] ?? '').toString().toLowerCase();
-                    final idNumber = (data['id'] ?? '').toString().toLowerCase();
-                    return fullName.contains(_searchQuery) || idNumber.contains(_searchQuery);
-                  }).toList();
-
-                  if (filteredPatients.isEmpty) {
-                    return const Center(child: Text('No matching patients found.'));
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    itemCount: filteredPatients.length,
-                    itemBuilder: (context, index) {
-                      final data = filteredPatients[index].data() as Map<String, dynamic>;
-
-                      return Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 3,
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.blueAccent,
-                            child: const Icon(Icons.person, color: Colors.white),
-                          ),
-                          title: Text(
-                            data['fullName'] ?? 'No Name',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          subtitle: Text(
-                            'Email: ${data['email'] ?? 'N/A'}',
-                            style: const TextStyle(fontSize: 13, color: Colors.black87),
-                          ),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    UserDetailsScreen(userId: filteredPatients[index].id),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
+            child: StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('users')
+                      .where('role', isEqualTo: 'patient')
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error loading patients.',
+                      style: TextStyle(
+                        color: const Color(0xFF00796B),
+                        fontSize: 16,
+                      ),
+                    ),
                   );
-                },
-              ),
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF00796B)),
+                  );
+                }
+
+                final patients = snapshot.data?.docs ?? [];
+
+                final filteredPatients =
+                    patients.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final fullName =
+                          (data['fullName'] ?? '').toString().toLowerCase();
+                      final idNumber =
+                          (data['id'] ?? '').toString().toLowerCase();
+                      return fullName.contains(_searchQuery) ||
+                          idNumber.contains(_searchQuery);
+                    }).toList();
+
+                if (filteredPatients.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 64,
+                          color: const Color(0xFF00796B).withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchQuery.isEmpty
+                              ? 'No patients found'
+                              : 'No matching patients found',
+                          style: const TextStyle(
+                            color: Color(0xFF00796B),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _searchQuery.isEmpty
+                              ? 'There are no patients in the system yet'
+                              : 'Try adjusting your search terms',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  itemCount: filteredPatients.length,
+                  itemBuilder: (context, index) {
+                    final data =
+                        filteredPatients[index].data() as Map<String, dynamic>;
+                    final fullName = data['fullName'] ?? 'No Name';
+                    final email = data['email'] ?? 'N/A';
+                    final idNumber = data['id']?.toString() ?? 'N/A';
+
+                    return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00796B).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.person,
+                            color: const Color(0xFF00796B),
+                            size: 24,
+                          ),
+                        ),
+                        title: Text(
+                          fullName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Email: $email',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'ID: $idNumber',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00796B).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                            color: Color(0xFF00796B),
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => UserDetailsScreen(
+                                    userId: filteredPatients[index].id,
+                                  ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],

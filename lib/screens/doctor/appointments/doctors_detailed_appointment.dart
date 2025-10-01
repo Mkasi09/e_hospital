@@ -135,7 +135,7 @@ class _DoctorAppointmentDetailScreenState
       }
 
       final age = now.difference(birthDate).inDays ~/ 365;
-      return '$age Old';
+      return '$age Years Old';
     } catch (e) {
       return 'N/A';
     }

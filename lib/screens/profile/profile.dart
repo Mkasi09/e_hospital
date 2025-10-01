@@ -2,9 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -49,6 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadUserData();
   }
+
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -56,11 +54,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (pickedFile == null) return;
 
     final file = File(pickedFile.path);
-    final cloudinaryUploadUrl = Uri.parse('https://api.cloudinary.com/v1_1/dzz3iovq5/raw/upload');
+    final cloudinaryUploadUrl = Uri.parse(
+      'https://api.cloudinary.com/v1_1/dzz3iovq5/raw/upload',
+    );
 
-    final request = http.MultipartRequest('POST', cloudinaryUploadUrl)
-      ..fields['upload_preset'] = 'ehospital'
-      ..files.add(await http.MultipartFile.fromPath('file', file.path));
+    final request =
+        http.MultipartRequest('POST', cloudinaryUploadUrl)
+          ..fields['upload_preset'] = 'ehospital'
+          ..files.add(await http.MultipartFile.fromPath('file', file.path));
 
     final response = await request.send();
 
@@ -71,31 +72,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-          'profilePicture': secureUrl,
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'profilePicture': secureUrl});
 
         setState(() {
           profilePicture = secureUrl;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile picture updated")),
+          SnackBar(
+            content: const Text("Profile picture updated"),
+            backgroundColor: const Color(0xFF00796B),
+          ),
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to upload image")),
+        const SnackBar(
+          content: Text("Failed to upload image"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
-
 
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
       if (doc.exists) {
         final data = doc.data()!;
         final addressData = data['address'] as Map<String, dynamic>?;
@@ -114,9 +125,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           nextOfKin = data['nextOfKin'] ?? '';
           nextOfKinPhone = data['nextOfKinPhone'] ?? '';
 
-          address = addressData != null
-              ? '${addressData['street'] ?? ''}, ${addressData['city'] ?? ''}, ${addressData['province'] ?? ''}, ${addressData['postalCode'] ?? ''}, ${addressData['country'] ?? ''}'
-              : '';
+          address =
+              addressData != null
+                  ? '${addressData['street'] ?? ''}, ${addressData['city'] ?? ''}, ${addressData['province'] ?? ''}, ${addressData['postalCode'] ?? ''}, ${addressData['country'] ?? ''}'
+                  : '';
 
           bloodGroup = medicalData['bloodGroup'] ?? '';
           allergies = medicalData['allergies'] ?? '';
@@ -156,95 +168,170 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showEditProfileDialog() {
     final phoneController = TextEditingController(text: phone);
     final nextOfKinController = TextEditingController(text: nextOfKin);
-    final nextOfKinPhoneController = TextEditingController(text: nextOfKinPhone);
+    final nextOfKinPhoneController = TextEditingController(
+      text: nextOfKinPhone,
+    );
 
     // Parse address parts or use empty strings
     final parts = address.split(',').map((e) => e.trim()).toList();
-    final streetController = TextEditingController(text: parts.isNotEmpty ? parts[0] : '');
-    final cityController = TextEditingController(text: parts.length > 1 ? parts[1] : '');
-    final provinceController = TextEditingController(text: parts.length > 2 ? parts[2] : '');
-    final postalCodeController = TextEditingController(text: parts.length > 3 ? parts[3] : '');
-    final countryController = TextEditingController(text: parts.length > 4 ? parts[4] : '');
+    final streetController = TextEditingController(
+      text: parts.isNotEmpty ? parts[0] : '',
+    );
+    final cityController = TextEditingController(
+      text: parts.length > 1 ? parts[1] : '',
+    );
+    final provinceController = TextEditingController(
+      text: parts.length > 2 ? parts[2] : '',
+    );
+    final postalCodeController = TextEditingController(
+      text: parts.length > 3 ? parts[3] : '',
+    );
+    final countryController = TextEditingController(
+      text: parts.length > 4 ? parts[4] : '',
+    );
 
     // Medical info controllers
     final bloodGroupController = TextEditingController(text: bloodGroup);
     final allergiesController = TextEditingController(text: allergies);
-    final chronicConditionsController = TextEditingController(text: chronicConditions);
+    final chronicConditionsController = TextEditingController(
+      text: chronicConditions,
+    );
     final medicationsController = TextEditingController(text: medications);
     final primaryDoctorController = TextEditingController(text: primaryDoctor);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Personal & Medical Info'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Personal Details', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              _buildTextField(phoneController, 'Phone Number', TextInputType.phone),
-              _buildTextField(nextOfKinController, 'Next of Kin'),
-              _buildTextField(nextOfKinPhoneController, 'Next of Kin Phone', TextInputType.phone),
-              const SizedBox(height: 12),
-              _buildTextField(streetController, 'Street'),
-              _buildTextField(cityController, 'City'),
-              _buildTextField(provinceController, 'Province'),
-              _buildTextField(postalCodeController, 'Postal Code', TextInputType.number),
-              _buildTextField(countryController, 'Country'),
-              const Divider(height: 32),
-              const Text('Medical Information', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              _buildTextField(bloodGroupController, 'Blood Group'),
-              _buildTextField(allergiesController, 'Allergies', TextInputType.multiline,),
-              _buildTextField(chronicConditionsController, 'Chronic Conditions', TextInputType.multiline,),
-              _buildTextField(medicationsController, 'Medications', TextInputType.multiline,),
-              _buildTextField(primaryDoctorController, 'Primary Doctor'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text(
+              'Edit Personal & Medical Info',
+              style: TextStyle(color: Color(0xFF00796B)),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Personal Details',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF00796B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    phoneController,
+                    'Phone Number',
+                    TextInputType.phone,
+                  ),
+                  _buildTextField(nextOfKinController, 'Next of Kin'),
+                  _buildTextField(
+                    nextOfKinPhoneController,
+                    'Next of Kin Phone',
+                    TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTextField(streetController, 'Street'),
+                  _buildTextField(cityController, 'City'),
+                  _buildTextField(provinceController, 'Province'),
+                  _buildTextField(
+                    postalCodeController,
+                    'Postal Code',
+                    TextInputType.number,
+                  ),
+                  _buildTextField(countryController, 'Country'),
+                  const Divider(height: 32),
+                  const Text(
+                    'Medical Information',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF00796B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTextField(bloodGroupController, 'Blood Group'),
+                  _buildTextField(
+                    allergiesController,
+                    'Allergies',
+                    TextInputType.multiline,
+                  ),
+                  _buildTextField(
+                    chronicConditionsController,
+                    'Chronic Conditions',
+                    TextInputType.multiline,
+                  ),
+                  _buildTextField(
+                    medicationsController,
+                    'Medications',
+                    TextInputType.multiline,
+                  ),
+                  _buildTextField(primaryDoctorController, 'Primary Doctor'),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Color(0xFF00796B)),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00796B),
+                ),
+                onPressed: () async {
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    final addressData = {
+                      'street': streetController.text.trim(),
+                      'city': cityController.text.trim(),
+                      'province': provinceController.text.trim(),
+                      'postalCode': postalCodeController.text.trim(),
+                      'country': countryController.text.trim(),
+                    };
+                    final medicalData = {
+                      'bloodGroup': bloodGroupController.text.trim(),
+                      'allergies': allergiesController.text.trim(),
+                      'chronicConditions':
+                          chronicConditionsController.text.trim(),
+                      'medications': medicationsController.text.trim(),
+                      'primaryDoctor': primaryDoctorController.text.trim(),
+                    };
+
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .update({
+                          'phone': phoneController.text.trim(),
+                          'nextOfKin': nextOfKinController.text.trim(),
+                          'nextOfKinPhone':
+                              nextOfKinPhoneController.text.trim(),
+                          'address': addressData,
+                          'medicalInfo': medicalData,
+                        });
+
+                    Navigator.pop(context);
+                    _loadUserData();
+                  }
+                },
+                child: const Text(
+                  'Save',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                final addressData = {
-                  'street': streetController.text.trim(),
-                  'city': cityController.text.trim(),
-                  'province': provinceController.text.trim(),
-                  'postalCode': postalCodeController.text.trim(),
-                  'country': countryController.text.trim(),
-                };
-                final medicalData = {
-                  'bloodGroup': bloodGroupController.text.trim(),
-                  'allergies': allergiesController.text.trim(),
-                  'chronicConditions': chronicConditionsController.text.trim(),
-                  'medications': medicationsController.text.trim(),
-                  'primaryDoctor': primaryDoctorController.text.trim(),
-                };
-
-                await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-                  'phone': phoneController.text.trim(),
-                  'nextOfKin': nextOfKinController.text.trim(),
-                  'nextOfKinPhone': nextOfKinPhoneController.text.trim(),
-                  'address': addressData,
-                  'medicalInfo': medicalData,
-                });
-
-                Navigator.pop(context);
-                _loadUserData();
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label,
-      [TextInputType keyboardType = TextInputType.text, int maxLines = 1]) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, [
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  ]) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
@@ -253,75 +340,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
         maxLines: maxLines,
         decoration: InputDecoration(
           labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF00796B)),
           border: const OutlineInputBorder(),
+          focusedBorder: const OutlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFF00796B), width: 2),
+          ),
           isDense: true,
         ),
       ),
     );
   }
-  Widget _buildMedicalInfoCard() {
-    return Container(
-      margin: const EdgeInsets.only(top: 32),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Medical Information',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade800,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _infoRow('Blood Group', bloodGroup),
-          _infoRow('Allergies', allergies),
-          _infoRow('Chronic Conditions', chronicConditions),
-          _infoRow('Medications', medications),
-          _infoRow('Primary Doctor', primaryDoctor),
-        ],
-      ),
-    );
-  }
-
 
   @override
   Widget build(BuildContext context) {
-    final isDoctor = 'doctor';
+    final isDoctor = role == 'doctor';
 
     if (_isLoading) {
       return Scaffold(
+        backgroundColor: const Color(0xFFE0F2F1),
         appBar: AppBar(
-          title: const Text('My Profile'),
-          backgroundColor: Colors.blue.shade800,
+          title: const Text(
+            'My Profile',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF00796B),
           centerTitle: true,
           elevation: 1,
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(
+          child: CircularProgressIndicator(color: Color(0xFF00796B)),
+        ),
       );
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFFE0F2F1),
       appBar: AppBar(
-        title: const Text('My Profile'),
-        backgroundColor: Colors.blue.shade800,
+        title: const Text('My Profile', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF00796B),
         centerTitle: true,
         elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.edit, color: Colors.white),
             onPressed: _showEditProfileDialog,
             tooltip: 'Edit Profile',
           ),
@@ -335,16 +398,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 CircleAvatar(
                   radius: 60,
-                  backgroundColor: Colors.grey.shade300,
-                  backgroundImage: profilePicture != null && profilePicture!.isNotEmpty
-                      ? NetworkImage(profilePicture!)
-                      : null,
-                  child: (profilePicture == null || profilePicture!.isEmpty)
-                      ? Text(
-                    fullName.isNotEmpty ? fullName[0].toUpperCase() : '',
-                    style: const TextStyle(fontSize: 40, color: Colors.white),
-                  )
-                      : null,
+                  backgroundColor: const Color(0xFF00796B).withOpacity(0.1),
+                  backgroundImage:
+                      profilePicture != null && profilePicture!.isNotEmpty
+                          ? NetworkImage(profilePicture!)
+                          : null,
+                  child:
+                      (profilePicture == null || profilePicture!.isEmpty)
+                          ? Text(
+                            fullName.isNotEmpty
+                                ? fullName[0].toUpperCase()
+                                : '',
+                            style: const TextStyle(
+                              fontSize: 40,
+                              color: Color(0xFF00796B),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                          : null,
                 ),
                 Positioned(
                   bottom: 0,
@@ -353,19 +424,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: _pickAndUploadImage,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.blue,
+                        color: const Color(0xFF00796B),
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
                       padding: const EdgeInsets.all(6),
-                      child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 20,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
 
           const SizedBox(height: 16),
           Center(
@@ -374,7 +448,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: Colors.black87,
+                color: Color(0xFF00796B),
                 letterSpacing: 0.5,
               ),
             ),
@@ -383,10 +457,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Center(
             child: Text(
               email,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
           ),
 
@@ -397,13 +468,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: const Color(0xFF00796B).withOpacity(0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
-                )
+                ),
               ],
             ),
             child: Column(
@@ -414,7 +485,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade800,
+                    color: Color(0xFF00796B),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -422,47 +493,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _infoRow('Gender', gender),
                 _infoRow('Date of Birth', dob),
                 _infoRow('Phone Number', phone),
-    if (role!=isDoctor) ...[
-                _infoRow(
-                  'Next of Kin',
-                  nextOfKin.isNotEmpty
-                      ? (nextOfKinPhone.isNotEmpty ? '$nextOfKin ($nextOfKinPhone)' : nextOfKin)
-                      : '',
-                ),
-                _infoRow('Address', address),
+                if (!isDoctor) ...[
+                  _infoRow(
+                    'Next of Kin',
+                    nextOfKin.isNotEmpty
+                        ? (nextOfKinPhone.isNotEmpty
+                            ? '$nextOfKin ($nextOfKinPhone)'
+                            : nextOfKin)
+                        : '',
+                  ),
+                  _infoRow('Address', address),
+                ],
               ],
-    ]
             ),
           ),
 
-          // Medical Info Container
+          // Professional/Medical Info Container
           Container(
-            margin: const EdgeInsets.only(top: 32),
+            margin: const EdgeInsets.only(top: 20),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: const Color(0xFF00796B).withOpacity(0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
-                )
+                ),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  role=='doctor' ? 'Professional Information' : 'Medical Information',
+                  isDoctor ? 'Professional Information' : 'Medical Information',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade800,
+                    color: Color(0xFF00796B),
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (role==isDoctor) ...[
+                if (isDoctor) ...[
                   _infoRow('Specialty', specialty),
                   _infoRow('Hospital', hospital),
                   _infoRow('License No.', licenseNumber),
@@ -480,9 +553,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
 
           const SizedBox(height: 40),
-
-
-
         ],
       ),
     );
@@ -494,48 +564,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "$label: ",
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
+          SizedBox(
+            width: 120,
+            child: Text(
+              "$label: ",
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                color: Color(0xFF00796B),
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value.isNotEmpty ? value : "Not provided",
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey.shade800,
-              ),
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade800),
             ),
           ),
         ],
       ),
     );
   }
-
-  Widget _buildProfileOption({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? iconColor,
-  }) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      elevation: 5,
-      shadowColor: Colors.black26,
-      child: ListTile(
-        leading: Icon(icon, color: iconColor ?? Colors.blue.shade800),
-        title: Text(
-          label,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-        ),
-        trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey.shade500),
-        onTap: onTap,
-      ),
-    );
-  }
 }
-
