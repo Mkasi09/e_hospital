@@ -15,7 +15,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, String>> messages = [];
-  final String apiKey = "AIzaSyA6tYsJWmtD8_VVurStHlfkRGjUqBsuu8I";
+  final String apiKey = "AIzaSyCMOQFcp4NJK_bfGbk80C89TbF1QGQW-HI";
 
   @override
   void initState() {
@@ -36,7 +36,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       messages.add({
         "sender": "bot",
         "text":
-        "👋 Hello! I’m your health assistant. How can I help you today with health, fitness, nutrition, or wellness?",
+            "👋 Hello! I’m your health assistant. How can I help you today with health, fitness, nutrition, or wellness?",
         "time": DateFormat('hh:mm a').format(DateTime.now()),
       });
       await saveMessages();
@@ -75,8 +75,16 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       }
     }
 
-    String prompt =
-        "You are a helpful health assistant. Only answer health-related questions about wellness, fitness, nutrition, or medical advice.\n";
+    String prompt = """
+You are a friendly health assistant chatbot.
+- Focus only on health, fitness, nutrition, or wellness.
+- clear, and easy to understand.
+- Avoid giving diagnosis or prescriptions.
+
+
+Conversation so far:
+""";
+
     for (var msg in memory) {
       String role = msg["sender"] == "user" ? "User" : "Bot";
       prompt += "$role: ${msg["text"]}\n";
@@ -86,14 +94,17 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     // API call
     final response = await http.post(
       Uri.parse(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"),
-      headers: {
-        "Content-Type": "application/json",
-      },
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey",
+      ),
+      headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "contents": [
-          {"parts": [{"text": prompt}]}
-        ]
+          {
+            "parts": [
+              {"text": prompt},
+            ],
+          },
+        ],
       }),
     );
 
@@ -142,25 +153,32 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment:
-                  isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                      isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
                   children: [
                     if (!isUser)
                       const Padding(
                         padding: EdgeInsets.all(6.0),
                         child: CircleAvatar(
                           backgroundColor: Colors.teal,
-                          child: Icon(Icons.medical_services,
-                              color: Colors.white),
+                          child: Icon(
+                            Icons.medical_services,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     Flexible(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.75, // 75% of screen
+                          maxWidth:
+                              MediaQuery.of(context).size.width *
+                              0.75, // 75% of screen
                         ),
                         child: Container(
                           padding: const EdgeInsets.all(10),
-                          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                          margin: const EdgeInsets.symmetric(
+                            vertical: 5,
+                            horizontal: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: isUser ? Colors.teal : Colors.white,
                             borderRadius: BorderRadius.circular(16),
@@ -172,28 +190,36 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                               ),
                             ],
                           ),
-                          child: msg["text"] == "typing"
-                              ? const TypingIndicator()
-                              : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                msg["text"] ?? "",
-                                style: TextStyle(
-                                  color: isUser ? Colors.white : Colors.black87,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                msg["time"] ?? "",
-                                style: TextStyle(
-                                  color: isUser ? Colors.white70 : Colors.black45,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
+                          child:
+                              msg["text"] == "typing"
+                                  ? const TypingIndicator()
+                                  : Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        msg["text"] ?? "",
+                                        style: TextStyle(
+                                          color:
+                                              isUser
+                                                  ? Colors.white
+                                                  : Colors.black87,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        msg["time"] ?? "",
+                                        style: TextStyle(
+                                          color:
+                                              isUser
+                                                  ? Colors.white70
+                                                  : Colors.black45,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                         ),
                       ),
                     ),
@@ -228,8 +254,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -266,8 +293,9 @@ class _TypingIndicatorState extends State<TypingIndicator>
   void initState() {
     super.initState();
     _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat();
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
   }
 
   @override
