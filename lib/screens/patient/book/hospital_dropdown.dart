@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-//import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HospitalDropdown extends StatelessWidget {
   final String? selectedHospital;
@@ -36,7 +35,7 @@ class HospitalDropdown extends StatelessWidget {
             child: const Icon(Icons.local_hospital, color: Colors.blueAccent),
           ),
           const SizedBox(width: 14),
-          Expanded(
+         Expanded(
             child: TypeAheadFormField<String>(
               textFieldConfiguration: TextFieldConfiguration(
                 controller: controller,

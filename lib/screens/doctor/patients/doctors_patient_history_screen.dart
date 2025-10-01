@@ -171,7 +171,6 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.blueAccent,
           ),
         ),
         const SizedBox(height: 12),
@@ -227,11 +226,11 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Patient \'s Details'),
-        backgroundColor: Colors.blueAccent,
+
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _uploadFileToPatient(context),
-        backgroundColor: Colors.blueAccent,
+
         icon: const Icon(Icons.upload_file),
         label: const Text('Upload Documents'),
         tooltip: 'Upload a document for this patient',
@@ -291,7 +290,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                         Text(
                           'Personal Details',
                           style: theme.textTheme.titleLarge?.copyWith(
-                            color: Colors.blueAccent,
+
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -326,7 +325,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                         Text(
                           'Medical Information',
                           style: theme.textTheme.titleLarge?.copyWith(
-                            color: Colors.blueAccent,
+
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -347,7 +346,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   icon: const Icon(Icons.add_circle),
                   label: const Text("Request a Service"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
+
                     minimumSize: const Size.fromHeight(48),
                   ),
                 ),

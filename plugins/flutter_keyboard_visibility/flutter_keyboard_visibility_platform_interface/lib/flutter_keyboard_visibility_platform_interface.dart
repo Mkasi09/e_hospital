@@ -10,7 +10,7 @@ abstract class FlutterKeyboardVisibilityPlatform extends PlatformInterface {
   static final Object _token = Object();
 
   static FlutterKeyboardVisibilityPlatform _instance =
-      MethodChannelFlutterKeyboardVisibility();
+      MethodChannelFlutterKeyboardVisibility() as FlutterKeyboardVisibilityPlatform;
 
   /// The default instance of [FlutterKeyboardVisibilityPlatform] to use.
   ///
