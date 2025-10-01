@@ -22,6 +22,10 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // Error states for inline messages
+  String? _emailError;
+  String? _passwordError;
+
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -30,6 +34,8 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() {
       _isLoading = true;
+      _emailError = null;
+      _passwordError = null;
     });
 
     try {
@@ -42,10 +48,8 @@ class _LoginPageState extends State<LoginPage> {
           .get();
 
       if (!userDoc.exists) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User record not found in database')),
-        );
         setState(() {
+          _emailError = 'User record not found in database';
           _isLoading = false;
         });
         return;
@@ -61,37 +65,50 @@ class _LoginPageState extends State<LoginPage> {
       bool isProfileComplete = data['profileComplete'] == true;
 
       if (isProfileComplete) {
-        // Navigate to normal app flow
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => AuthenticationWrapper()),
         );
       } else {
-        // Navigate to additional details screen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AdditionalDetailsScreen()),
         );
       }
-
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Login failed')),
-      );
-    } finally {
+  setState(() {
+  _emailError = null;
+  _passwordError = null;
+
+  if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+  // invalid-credential often comes from Recaptcha on wrong passwords
+  _passwordError = 'Incorrect password or email, please try again';
+  } else if (e.code == 'user-not-found') {
+  _emailError = 'No account found with that email';
+  } else if (e.code == 'invalid-email') {
+  _emailError = 'Enter a valid email address';
+  } else if (e.code == 'user-disabled') {
+  _emailError = 'This account has been disabled';
+  } else {
+  // Catch-all fallback
+  _emailError = null;
+  _passwordError = 'Login failed, please try again';
+  }
+  });
+  }
+  finally {
       setState(() {
         _isLoading = false;
       });
     }
   }
 
-
   void _resetPassword() async {
     String email = _emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email to reset password')),
-      );
+      setState(() {
+        _emailError = 'Enter your email to reset password';
+      });
       return;
     }
 
@@ -101,9 +118,9 @@ class _LoginPageState extends State<LoginPage> {
         const SnackBar(content: Text('Password reset link sent to email')),
       );
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Reset failed')),
-      );
+      setState(() {
+        _emailError = e.message ?? 'Reset failed';
+      });
     }
   }
 
@@ -121,28 +138,25 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 // Logo
                 Image.asset('assets/icon.png', height: 200),
-                Center(
-                  child: const Text(
-                    'Login To Your Account',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
+                const Text(
+                  'Login To Your Account',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Center(
-                  child: const Text(
-                    'Enter your login details to continue',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
-                    ),
+                const Text(
+                  'Enter your login details to continue',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
                   ),
                 ),
+                const SizedBox(height: 8),
+
                 // Email
-                const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -152,6 +166,7 @@ class _LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     prefixIcon: const Icon(Icons.email_outlined),
+                    errorText: _emailError, // show inline error
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -185,6 +200,7 @@ class _LoginPageState extends State<LoginPage> {
                         });
                       },
                     ),
+                    errorText: _passwordError, // show inline error
                   ),
                   validator: (value) =>
                   (value == null || value.isEmpty) ? 'Enter password' : null,
