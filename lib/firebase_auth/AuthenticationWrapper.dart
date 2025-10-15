@@ -13,7 +13,6 @@ class AuthenticationWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-
     if (user == null) {
       return LoginPage();
     }
@@ -26,8 +25,10 @@ class AuthenticationWrapper extends StatelessWidget {
       statusRef.set({'online': true});
       statusRef.onDisconnect().set({'online': false});
     }
+
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+      future:
+          FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -44,7 +45,7 @@ class AuthenticationWrapper extends StatelessWidget {
         // If user must reset password, fetch token and pass it to the reset screen
         if (requiresReset) {
           return FutureBuilder<String>(
-              future: user.getIdToken(true).then((token) => token!),
+            future: user.getIdToken(true).then((token) => token!),
             // Get fresh token
             builder: (context, tokenSnapshot) {
               if (tokenSnapshot.connectionState == ConnectionState.waiting) {
@@ -56,10 +57,7 @@ class AuthenticationWrapper extends StatelessWidget {
               }
 
               final idToken = tokenSnapshot.data!;
-              return SetNewPasswordScreen(
-                uid: user.uid,
-                idToken: idToken,
-              );
+              return SetNewPasswordScreen(uid: user.uid, idToken: idToken);
             },
           );
         }

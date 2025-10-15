@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../firebase_auth/signin.dart';
 import '../screens/profile/profile.dart';
@@ -9,27 +10,51 @@ import '../screens/settings/doctor_settings_screen.dart';
 import '../screens/settings/help_faq_screen.dart';
 import '../screens/settings/terms_and_conditons.dart';
 
-class PatientDrawer extends StatelessWidget {
-  const PatientDrawer({super.key});
+class RoleBasedDrawer extends StatelessWidget {
+  const RoleBasedDrawer({super.key});
 
   Future<Map<String, dynamic>> _fetchUserData() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return {'fullName': 'Patient', 'profileUrl': null, 'onlineStatus': false};
+      return {
+        'displayName': 'User',
+        'profileUrl': null,
+        'onlineStatus': false,
+        'role': 'unknown',
+      };
     }
+
+    // Check cached role first
+    final prefs = await SharedPreferences.getInstance();
+    String? cachedRole = prefs.getString('userRole');
 
     final snapshot =
         await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
     if (snapshot.exists) {
       final data = snapshot.data()!;
+      final role = data['role'] ?? cachedRole ?? 'unknown';
+      await prefs.setString('userRole', role);
+
+      // Pick name field based on role
+      final displayName =
+          role == 'doctor'
+              ? (data['name'] ?? 'Doctor')
+              : (data['fullName'] ?? 'Patient');
+
       return {
-        'fullName': data['fullName'] ?? 'Patient',
+        'displayName': displayName,
         'profileUrl': data['profilePicture'],
         'onlineStatus': data['onlineStatus'] ?? false,
+        'role': role,
       };
     } else {
-      return {'fullName': 'Patient', 'profileUrl': null, 'onlineStatus': false};
+      return {
+        'displayName': 'User',
+        'profileUrl': null,
+        'onlineStatus': false,
+        'role': cachedRole ?? 'unknown',
+      };
     }
   }
 
@@ -44,18 +69,19 @@ class PatientDrawer extends StatelessWidget {
       child: FutureBuilder<Map<String, dynamic>>(
         future: _fetchUserData(),
         builder: (context, snapshot) {
-          final fullName =
-              snapshot.hasData ? snapshot.data!['fullName'] : 'Patient';
-          final profileUrl =
-              snapshot.hasData ? snapshot.data!['profileUrl'] : null;
-          final onlineStatus =
-              snapshot.hasData
-                  ? snapshot.data!['onlineStatus'] ?? false
-                  : false;
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final data = snapshot.data!;
+          final displayName = data['displayName'] ?? 'User';
+          final profileUrl = data['profileUrl'];
+          final onlineStatus = data['onlineStatus'] ?? false;
+          final role = data['role'] ?? 'unknown';
 
           return Column(
             children: [
-              // Header with user info
+              // Header
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.only(
@@ -146,7 +172,7 @@ class PatientDrawer extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                fullName,
+                                displayName,
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
@@ -161,7 +187,7 @@ class PatientDrawer extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Patient Account',
+                      role == 'doctor' ? 'Doctor Account' : 'Patient Account',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.teal.shade600,
@@ -172,7 +198,7 @@ class PatientDrawer extends StatelessWidget {
                 ),
               ),
 
-              // Menu items
+              // Menu items based on role
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(16),
@@ -191,20 +217,37 @@ class PatientDrawer extends StatelessWidget {
                         );
                       },
                     ),
-                    _buildDrawerItem(
-                      context,
-                      icon: Icons.settings_outlined,
-                      label: 'Settings',
-                      color: Colors.blue,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SettingsScreen(),
-                          ),
-                        );
-                      },
-                    ),
+                    if (role == 'patient') ...[
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.settings_outlined,
+                        label: 'Settings',
+                        color: Colors.blue,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ] else if (role == 'doctor') ...[
+                      _buildDrawerItem(
+                        context,
+                        icon: Icons.medical_services_outlined,
+                        label: 'Doctor Settings',
+                        color: Colors.indigo,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                     _buildDrawerItem(
                       context,
                       icon: Icons.description_outlined,
@@ -278,7 +321,7 @@ class PatientDrawer extends StatelessWidget {
     required Color color,
   }) {
     return Card(
-      color: Color(0xFFE0F2F1),
+      color: const Color(0xFFE0F2F1),
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -303,16 +346,18 @@ class PatientDrawer extends StatelessWidget {
           color: Colors.grey.shade400,
         ),
         onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 }
 
 Future<void> _logout(BuildContext context) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('userRole'); // clear cached role
   await FirebaseAuth.instance.signOut();
+
   Navigator.of(context).pushAndRemoveUntil(
-    MaterialPageRoute(builder: (context) => LoginPage()),
+    MaterialPageRoute(builder: (context) => const LoginPage()),
     (route) => false,
   );
 }

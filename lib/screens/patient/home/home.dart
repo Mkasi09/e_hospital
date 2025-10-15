@@ -36,6 +36,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   Future<void> fetchNextAppointment() async {
     try {
       final userId = FirebaseAuth.instance.currentUser!.uid;
+      final now = DateTime.now();
 
       final querySnapshot =
           await FirebaseFirestore.instance
@@ -43,20 +44,37 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               .where('userId', isEqualTo: userId)
               .where('status', isEqualTo: 'pending')
               .orderBy('date')
-              .limit(1)
               .get();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        final doc = querySnapshot.docs.first;
-        final data = doc.data();
+      // Filter out appointments that have already passed
+      final upcoming =
+          querySnapshot.docs.where((doc) {
+            final data = doc.data();
+            final Timestamp dateStamp = data['date'];
+            final DateTime date = dateStamp.toDate();
 
+            // Parse time if stored as 'HH:mm' string
+            final String timeStr = data['time'];
+            final timeParts = timeStr.split(':');
+            final appointmentDateTime = DateTime(
+              date.year,
+              date.month,
+              date.day,
+              int.parse(timeParts[0]),
+              int.parse(timeParts[1]),
+            );
+
+            return appointmentDateTime.isAfter(now);
+          }).toList();
+
+      if (upcoming.isNotEmpty) {
+        final data = upcoming.first.data();
         final Timestamp timestamp = data['date'];
         final DateTime dateTime = timestamp.toDate();
         final String formattedDate = DateFormat(
           'EEE, MMM d, yyyy',
         ).format(dateTime);
-
-        final String formattedTime = "${data['time']}";
+        final String formattedTime = data['time'];
 
         setState(() {
           nextAppointment = {
@@ -66,15 +84,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
           };
         });
       } else {
-        setState(() {
-          nextAppointment = {};
-        });
+        setState(() => nextAppointment = {});
       }
     } catch (e) {
       print("Error fetching next appointment: $e");
-      setState(() {
-        nextAppointment = {};
-      });
+      setState(() => nextAppointment = {});
     }
   }
 
@@ -115,7 +129,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         elevation: 4,
       ),
 
-      drawer: const PatientDrawer(),
+      drawer: const RoleBasedDrawer(),
       body: Stack(
         children: [
           Container(
@@ -167,7 +181,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                                         nextAppointment!['date'] ??
                                             'Unknown Date',
                                         style: const TextStyle(
-                                          fontSize: 16,
+                                          fontSize: 14,
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF00796B),
                                         ),

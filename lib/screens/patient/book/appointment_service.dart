@@ -1,6 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:e_hospital/screens/patient/payments/payfast_web.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class AppointmentService {
@@ -9,16 +10,15 @@ class AppointmentService {
   static final CollectionReference _notificationsRef = FirebaseFirestore
       .instance
       .collection('notifications');
+  static final CollectionReference _billsRef = FirebaseFirestore.instance
+      .collection('bills');
 
   static Future<List<String>> fetchBookedSlots(
     String doctorId,
     DateTime selectedDate,
   ) async {
     final snapshot =
-        await FirebaseFirestore.instance
-            .collection('appointments')
-            .where('doctorId', isEqualTo: doctorId)
-            .get();
+        await _appointmentsRef.where('doctorId', isEqualTo: doctorId).get();
 
     final bookedTimes = <String>[];
 
@@ -26,8 +26,8 @@ class AppointmentService {
       final data = doc.data() as Map<String, dynamic>;
       final Timestamp dateTimestamp = data['date'];
       final String timeString = data['time'];
-
       final appointmentDate = dateTimestamp.toDate();
+
       if (DateUtils.isSameDay(appointmentDate, selectedDate)) {
         final parts = timeString.split(':');
         final hour = parts[0].padLeft(2, '0');
@@ -37,6 +37,21 @@ class AppointmentService {
     }
 
     return bookedTimes;
+  }
+
+  static Future<double> fetchOutstandingBalance(String userId) async {
+    final snapshot =
+        await _billsRef
+            .where('userId', isEqualTo: userId)
+            .where('status', isEqualTo: 'Unpaid')
+            .get();
+
+    double total = 0;
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>?; // explicitly nullable
+      total += (data?['amount'] ?? 0).toDouble();
+    }
+    return total;
   }
 
   static Future<void> _sendNotification({
@@ -57,7 +72,27 @@ class AppointmentService {
     });
   }
 
-  // 🆕 Added `fee` param
+  static Future<void> _createBill({
+    required String userId,
+    required String doctorName,
+    required String appointmentType,
+    required double fee,
+    required String appointmentId,
+    required bool isPaid,
+  }) async {
+    await _billsRef.add({
+      'userId': userId,
+      'doctorName': doctorName,
+      'appointmentId': appointmentId,
+      'appointmentType': appointmentType,
+      'title': '$appointmentType Fee - $doctorName',
+      'amount': fee,
+      'status': isPaid ? 'Paid' : 'Unpaid',
+      'timestamp': Timestamp.now(),
+    });
+  }
+
+  // Handles both Pay Now & Pay Later
   static Future<bool> submitAppointment({
     required BuildContext context,
     required String? selectedHospital,
@@ -67,6 +102,7 @@ class AppointmentService {
     required TextEditingController reasonController,
     required String appointmentType,
     required int fee,
+    required bool payNow,
   }) async {
     if ([
           selectedHospital,
@@ -75,27 +111,25 @@ class AppointmentService {
           selectedTime,
         ].contains(null) ||
         reasonController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all the fields.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return false;
     }
 
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw 'User not logged in';
-
       final userId = user.uid;
 
-      // Check outstanding balance first
+      // Check outstanding balance
       double outstanding = await fetchOutstandingBalance(userId);
 
-      if (outstanding > 100) {
+      if (!payNow && outstanding + fee > 150) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'You have an outstanding balance of R${outstanding.toStringAsFixed(2)}. '
-              'Please pay it before booking a new appointment.',
+              'You cannot defer payment. Your outstanding balance would exceed R150 (currently R${outstanding.toStringAsFixed(2)}).',
             ),
           ),
         );
@@ -121,6 +155,7 @@ class AppointmentService {
       if (doctorSnapshot.docs.isEmpty) throw 'Doctor not found';
       final doctorDoc = doctorSnapshot.docs.first;
       final doctorId = doctorDoc.id;
+      final speciality = doctorDoc.data()?['speciality'] ?? 'General';
 
       // Appointment datetime
       final parts = selectedTime!.split(':');
@@ -139,7 +174,6 @@ class AppointmentService {
         selectedDate.day,
       );
       final endOfDay = startOfDay.add(const Duration(days: 1));
-      final speciality = doctorDoc.data()?['speciality'] ?? 'General';
       final conflictSnapshot =
           await _appointmentsRef
               .where('doctorId', isEqualTo: doctorId)
@@ -153,15 +187,14 @@ class AppointmentService {
       final isConflicting = conflictSnapshot.docs.any(
         (doc) => doc['time'] == selectedTime,
       );
-
       if (isConflicting) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selected time is already booked.')),
+          const SnackBar(content: Text('Selected time is already booked')),
         );
         return false;
       }
 
-      // Create the appointment
+      // Create appointment
       final appointmentRef = await _appointmentsRef.add({
         'hospital': selectedHospital,
         'doctor': selectedDoctor,
@@ -175,18 +208,58 @@ class AppointmentService {
         'patientName': patientName,
         'appointmentType': appointmentType,
         'fee': fee,
-        'speciality': speciality, // 🆕 Save speciality from doctor
+        'speciality': speciality,
       });
 
-      await updateOutstandingBalance(
-        userId: userId,
-        doctorName: selectedDoctor!,
-        appointmentType: appointmentType, // pass selected type
-        fee: fee.toDouble(), // pass selected fee
-        appointmentId: appointmentRef.id,
-      );
+      // Payment handling
+      if (payNow) {
+        // Launch PayFast
+        final payfastUrl =
+            'https://sandbox.payfast.co.za/eng/process?' +
+            'merchant_id=10000100&' +
+            'merchant_key=46f0cd694581a&' +
+            'return_url=https://yourapp.com/return&' +
+            'cancel_url=https://yourapp.com/cancel&' +
+            'notify_url=https://yourapp.com/notify&' +
+            'amount=${fee.toStringAsFixed(2)}&' +
+            'item_name=$appointmentType Payment&' +
+            'custom_str1=$userId';
 
-      // Send notifications
+        final paid = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PayFastWebView(url: payfastUrl),
+          ),
+        );
+
+        if (paid == true) {
+          await _createBill(
+            userId: userId,
+            doctorName: selectedDoctor!,
+            appointmentType: appointmentType,
+            fee: fee.toDouble(),
+            appointmentId: appointmentRef.id,
+            isPaid: true,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment failed or cancelled')),
+          );
+          return false;
+        }
+      } else {
+        // Pay later, add unpaid bill
+        await _createBill(
+          userId: userId,
+          doctorName: selectedDoctor!,
+          appointmentType: appointmentType,
+          fee: fee.toDouble(),
+          appointmentId: appointmentRef.id,
+          isPaid: false,
+        );
+      }
+
+      // Notifications
       await _sendNotification(
         userId: userId,
         title: 'Appointment Confirmed',
@@ -214,7 +287,9 @@ class AppointmentService {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Appointment booked successfully. Your new outstanding balance is R${(outstanding + fee).toStringAsFixed(2)}.',
+            payNow
+                ? 'Appointment booked & paid successfully.'
+                : 'Appointment booked. You have an outstanding balance of R${(outstanding + fee).toStringAsFixed(2)}',
           ),
         ),
       );
@@ -226,141 +301,5 @@ class AppointmentService {
       ).showSnackBar(SnackBar(content: Text('Failed to book appointment: $e')));
       return false;
     }
-  }
-
-  // 🆕 Added `fee` param
-  static Future<bool> rescheduleAppointment({
-    required BuildContext context,
-    required String appointmentId,
-    required String newHospital,
-    required String newDoctor,
-    required DateTime newDate,
-    required String newTime,
-    required TextEditingController reasonController,
-    required String appointmentType,
-    required int fee,
-  }) async {
-    try {
-      final parts = newTime.split(':');
-      final appointmentDateTime = DateTime(
-        newDate.year,
-        newDate.month,
-        newDate.day,
-        int.parse(parts[0]),
-        int.parse(parts[1]),
-      );
-
-      final startOfDay = DateTime(newDate.year, newDate.month, newDate.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-
-      final snapshot =
-          await _appointmentsRef
-              .where('doctor', isEqualTo: newDoctor)
-              .where(
-                'date',
-                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
-              )
-              .where('date', isLessThan: Timestamp.fromDate(endOfDay))
-              .get();
-
-      final conflicting = snapshot.docs.any(
-        (doc) => doc.id != appointmentId && doc['time'] == newTime,
-      );
-
-      if (conflicting) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Selected time is already booked.')),
-        );
-        return false;
-      }
-
-      // Get existing appointment data
-      final appointmentDoc = await _appointmentsRef.doc(appointmentId).get();
-      final appointmentData = appointmentDoc.data() as Map<String, dynamic>;
-      final patientId = appointmentData['userId'];
-      final doctorId = appointmentData['doctorId'];
-      final patientName = appointmentData['patientName'];
-
-      // Update the appointment
-      await _appointmentsRef.doc(appointmentId).update({
-        'hospital': newHospital,
-        'doctor': newDoctor,
-        'date': Timestamp.fromDate(appointmentDateTime),
-        'time': newTime,
-        'reason': reasonController.text.trim(),
-        'updatedAt': Timestamp.now(),
-        'appointmentType': appointmentType, // 🆕 Save type
-        'fee': fee, // 🆕 Save fee
-      });
-
-      // Send notification to patient about reschedule
-      await _sendNotification(
-        userId: patientId,
-        title: 'Appointment Rescheduled',
-        body:
-            'Your appointment with Dr. $newDoctor has been rescheduled to ${DateFormat('MMM dd, yyyy').format(newDate)} at $newTime.',
-        type: 'appointment',
-        additionalData: {'appointmentId': appointmentId, 'doctorId': doctorId},
-      );
-
-      // Send notification to doctor about reschedule
-      await _sendNotification(
-        userId: doctorId,
-        title: 'Appointment Rescheduled',
-        body:
-            '$patientName has rescheduled their appointment to ${DateFormat('MMM dd, yyyy').format(newDate)} at $newTime.',
-        type: 'doctor_appointment',
-        additionalData: {
-          'appointmentId': appointmentId,
-          'patientId': patientId,
-        },
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointment rescheduled successfully.')),
-      );
-      return true;
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to reschedule appointment: $e')),
-      );
-      return false;
-    }
-  }
-
-  static Future<double> fetchOutstandingBalance(String userId) async {
-    final querySnapshot =
-        await FirebaseFirestore.instance
-            .collection('bills')
-            .where('userId', isEqualTo: userId)
-            .where('status', isEqualTo: 'Unpaid')
-            .get();
-
-    double total = 0.0;
-    for (var doc in querySnapshot.docs) {
-      final data = doc.data();
-      total += (data['amount'] ?? 0).toDouble();
-    }
-
-    return total;
-  }
-
-  static Future<void> updateOutstandingBalance({
-    required String userId,
-    required String doctorName,
-    required String appointmentType, // 🆕 include type
-    required double fee, // 🆕 include fee
-    required String appointmentId,
-  }) async {
-    await FirebaseFirestore.instance.collection('bills').add({
-      'userId': userId,
-      'doctorName': doctorName,
-      'appointmentId': appointmentId,
-      'appointmentType': appointmentType, // 🆕 save type
-      'title': '$appointmentType Fee - $doctorName', // dynamic title
-      'amount': fee, // dynamic amount
-      'status': 'Unpaid',
-      'timestamp': Timestamp.now(),
-    });
   }
 }
