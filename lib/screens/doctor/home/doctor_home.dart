@@ -89,7 +89,7 @@ class _DoctorsHomepageState extends State<DoctorsHomepage> {
           ),
         ],
       ),
-      drawer: const PatientDrawer(),
+      drawer: const RoleBasedDrawer(),
       body:
           _isLoading
               ? const Center(

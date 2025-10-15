@@ -1,14 +1,13 @@
+import 'package:e_hospital/screens/doctor/patients/doctors_patient_history_screen.dart';
 import 'package:e_hospital/screens/patient/files/upload_confirmation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-
 import 'official_hospital_file_cards.dart';
 import 'patient_file_card.dart';
 import 'file_upload_service.dart';
-
 
 class FilesAndPrescriptionsScreen extends StatefulWidget {
   const FilesAndPrescriptionsScreen({super.key});
@@ -18,7 +17,8 @@ class FilesAndPrescriptionsScreen extends StatefulWidget {
       _FilesAndPrescriptionsScreenState();
 }
 
-class _FilesAndPrescriptionsScreenState extends State<FilesAndPrescriptionsScreen>
+class _FilesAndPrescriptionsScreenState
+    extends State<FilesAndPrescriptionsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -28,14 +28,8 @@ class _FilesAndPrescriptionsScreenState extends State<FilesAndPrescriptionsScree
   bool _isUploading = false;
 
   final String patientId = FirebaseAuth.instance.currentUser!.uid;
-  final CollectionReference patientFilesCollection =
-  FirebaseFirestore.instance.collection('uploaded_files');
-
-  final List<Map<String, String>> _hospitalFiles = [
-    {'title': 'Blood Test Report', 'date': '2025-03-10'},
-    {'title': 'X-Ray Results', 'date': '2025-04-01'},
-    {'title': 'Prescription - Dr. Smith', 'date': '2025-05-15'},
-  ];
+  final CollectionReference patientFilesCollection = FirebaseFirestore.instance
+      .collection('uploaded_files');
 
   @override
   void initState() {
@@ -97,13 +91,13 @@ class _FilesAndPrescriptionsScreenState extends State<FilesAndPrescriptionsScree
   Future<void> _deletePatientFile(String docId) async {
     try {
       await patientFilesCollection.doc(docId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Document deleted.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Document deleted.')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Delete failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
     }
   }
 
@@ -125,41 +119,169 @@ class _FilesAndPrescriptionsScreenState extends State<FilesAndPrescriptionsScree
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('Official Hospital Files', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Official Hospital Files',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            ..._hospitalFiles.map((file) => buildVerifiedFileCard(title: file['title']!, date: file['date']!)),
+
+            StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('doctor_uploaded_files')
+                      .where('userId', isEqualTo: patientId)
+                      .orderBy('date', descending: true)
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Text('Error loading hospital files.');
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.data!.docs.isEmpty) {
+                  return Column(
+                    children: const [
+                      Icon(
+                        Icons.insert_drive_file,
+                        size: 60,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'No official files available.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  );
+                }
+
+                return Column(
+                  children:
+                      snapshot.data!.docs.map((doc) {
+                        final data = doc.data()! as Map<String, dynamic>;
+                        return buildVerifiedFileCard(
+                          title: data['title'] ?? 'Untitled',
+                          date:
+                              (data['date'] as Timestamp?)
+                                  ?.toDate()
+                                  .toString()
+                                  .split(' ')[0] ??
+                              '',
+                        );
+                      }).toList(),
+                );
+              },
+            ),
             const Divider(height: 32),
-            const Text('My Uploaded Documents', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'My Uploaded Documents',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             StreamBuilder<QuerySnapshot>(
-              stream: patientFilesCollection.orderBy('date', descending: true).snapshots(),
+              stream:
+                  patientFilesCollection
+                      .orderBy('date', descending: true)
+                      .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError) return const Text('Error loading documents.');
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError)
+                  return const Text('Error loading documents.');
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  return const Center(child: CircularProgressIndicator());
                 if (snapshot.data!.docs.isEmpty) {
                   return Column(
                     children: const [
                       Icon(Icons.folder_off, size: 60, color: Colors.grey),
                       SizedBox(height: 8),
-                      Text('You have not uploaded any documents yet.', style: TextStyle(color: Colors.grey)),
+                      Text(
+                        'You have not uploaded any documents yet.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ],
                   );
                 }
                 return Column(
-                  children: snapshot.data!.docs.map((doc) {
-                    final data = doc.data()! as Map<String, dynamic>;
-                    return PatientFileCard(
-                      docId: doc.id,
-                      title: data['title'] ?? 'Untitled',
-                      date: (data['date'] as Timestamp).toDate(),
-                      status: data['status'] ?? 'pending',
-                      downloadUrl: data['downloadUrl'] ?? '',
-                      onDelete: () => _deletePatientFile(doc.id),
-                    );
-                  }).toList(),
+                  children:
+                      snapshot.data!.docs.map((doc) {
+                        final data = doc.data()! as Map<String, dynamic>;
+                        return PatientFileCard(
+                          docId: doc.id,
+                          title: data['title'] ?? 'Untitled',
+                          date: (data['date'] as Timestamp).toDate(),
+                          status: data['status'] ?? 'pending',
+                          downloadUrl: data['downloadUrl'] ?? '',
+                          onDelete: () => _deletePatientFile(doc.id),
+                          content: null,
+                        );
+                      }).toList(),
                 );
               },
             ),
+            const SizedBox(height: 16),
+            const Text(
+              'Prescriptions',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('prescriptions')
+                      .where('userId', isEqualTo: patientId)
+                      .orderBy('date', descending: true)
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError)
+                  return const Text('Error loading prescriptions.');
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.data!.docs.isEmpty) {
+                  return Column(
+                    children: const [
+                      Icon(
+                        Icons.medical_services,
+                        size: 60,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'No prescriptions available.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  );
+                }
+
+                return Column(
+                  children:
+                      snapshot.data!.docs.map((doc) {
+                        final data = doc.data()! as Map<String, dynamic>;
+                        return PatientFileCard(
+                          docId: doc.id,
+                          title: data['title'] ?? 'Prescription',
+                          date: (data['date'] as Timestamp).toDate(),
+                          status: data['status'] ?? 'reviewed',
+                          downloadUrl: null,
+                          content: data['content'] ?? '',
+                          onDelete: () async {
+                            await FirebaseFirestore.instance
+                                .collection('prescriptions')
+                                .doc(doc.id)
+                                .delete();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Prescription deleted'),
+                              ),
+                            );
+                          },
+                        );
+                      }).toList(),
+                );
+              },
+            ),
+
             const SizedBox(height: 80),
           ],
         ),

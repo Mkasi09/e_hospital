@@ -17,6 +17,7 @@ class MessageInputField extends StatelessWidget {
     required this.currentUserId,
     required this.peerId,
     required this.scrollController,
+    required FocusNode focusNode,
   });
 
   @override
@@ -29,10 +30,17 @@ class MessageInputField extends StatelessWidget {
             icon: const Icon(Icons.image),
             onPressed: () async {
               final picker = ImagePicker();
-              final picked = await picker.pickImage(source: ImageSource.gallery);
+              final picked = await picker.pickImage(
+                source: ImageSource.gallery,
+              );
               if (picked != null) {
                 final file = File(picked.path);
-                await ChatService.uploadAndSendImage(file, chatId, currentUserId, peerId);
+                await ChatService.uploadAndSendImage(
+                  file,
+                  chatId,
+                  currentUserId,
+                  peerId,
+                );
               }
             },
           ),
@@ -40,12 +48,21 @@ class MessageInputField extends StatelessWidget {
             child: TextField(
               controller: controller,
               onChanged: (text) {
-                ChatService.setTypingStatus(chatId, currentUserId, text.isNotEmpty);
+                ChatService.setTypingStatus(
+                  chatId,
+                  currentUserId,
+                  text.isNotEmpty,
+                );
               },
               decoration: InputDecoration(
                 hintText: 'Type your message...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(25)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
             ),
           ),
@@ -58,7 +75,12 @@ class MessageInputField extends StatelessWidget {
               onPressed: () async {
                 final text = controller.text.trim();
                 if (text.isNotEmpty) {
-                  await ChatService.sendMessage(text, chatId, currentUserId, peerId);
+                  await ChatService.sendMessage(
+                    text,
+                    chatId,
+                    currentUserId,
+                    peerId,
+                  );
                   controller.clear();
                   scrollController.animateTo(
                     scrollController.position.maxScrollExtent + 100,

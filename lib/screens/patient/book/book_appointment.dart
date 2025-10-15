@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:e_hospital/screens/patient/book/ReasonForVisitField.dart';
+import 'package:e_hospital/screens/patient/book/reschudule/reschudule_appoitment_service.dart';
 import 'package:flutter/material.dart';
 import 'hospital_dropdown.dart';
 import 'doctor_dropdown.dart';
@@ -7,6 +8,7 @@ import 'date_picker_tile.dart';
 import 'time_slot_selector.dart';
 import 'appointment_service.dart';
 
+// Add a simple toggle or radio buttons for Pay Now / Pay Later
 class BookAppointmentScreen extends StatefulWidget {
   final bool isRescheduling;
   final String? appointmentId;
@@ -31,12 +33,11 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
   String? _selectedTime;
   String? _appointmentType;
   int? _currentFee;
+  bool _payNow = true; // ✅ Default is pay now
 
   final TextEditingController _reasonController = TextEditingController();
-
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
-
   List<String> _bookedSlots = [];
 
   final List<String> _appointmentTypes = [
@@ -47,7 +48,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
     "Emergency",
   ];
 
-  // 🆕 Fees for each type
   final Map<String, int> _appointmentFees = {
     "Consultation": 50,
     "Follow-up": 30,
@@ -68,12 +68,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
       _selectedTime = data['time'];
       _reasonController.text = data['reason'] ?? '';
       _appointmentType = data['appointmentType'];
-
-      // 🆕 Set the fee if type exists
-      if (_appointmentType != null &&
-          _appointmentFees.containsKey(_appointmentType)) {
-        _currentFee = _appointmentFees[_appointmentType]!;
-      }
+      _currentFee =
+          _appointmentType != null ? _appointmentFees[_appointmentType!] : null;
 
       AppointmentService.fetchBookedSlots(
         _selectedDoctor!['name']!,
@@ -118,19 +114,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
 
     bool success;
 
-    if (widget.isRescheduling && widget.appointmentId != null) {
-      success = await AppointmentService.rescheduleAppointment(
-        context: context,
-        appointmentId: widget.appointmentId!,
-        newHospital: _selectedHospital!,
-        newDoctor: _selectedDoctor!['name']!,
-        newDate: _selectedDate!,
-        newTime: _selectedTime!,
-        reasonController: _reasonController,
-        appointmentType: _appointmentType!,
-        fee: _currentFee!,
-      );
-    } else {
+    {
       success = await AppointmentService.submitAppointment(
         context: context,
         selectedHospital: _selectedHospital,
@@ -140,6 +124,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
         reasonController: _reasonController,
         appointmentType: _appointmentType!,
         fee: _currentFee!,
+        payNow: _payNow,
       );
     }
 
@@ -153,12 +138,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
         _currentFee = null;
         _reasonController.clear();
         _bookedSlots = [];
+        _payNow = true;
       });
     } else if (success) {
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appointment rescheduled successfully')),
-      );
     }
   }
 
@@ -195,9 +178,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                 hospital: _selectedHospital,
                 selectedDoctor: _selectedDoctor,
                 onDoctorSelected: (doctor) {
-                  setState(() {
-                    _selectedDoctor = doctor;
-                  });
+                  setState(() => _selectedDoctor = doctor);
                   _loadBookedSlots();
                 },
               ),
@@ -220,7 +201,7 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                 ),
               const SizedBox(height: 16),
 
-              // 🆕 Appointment Type Dropdown
+              // Appointment Type Dropdown
               Container(
                 margin: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -241,9 +222,14 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                     hintText: "Select Appointment Type",
                   ),
                   items:
-                      _appointmentTypes.map((type) {
-                        return DropdownMenuItem(value: type, child: Text(type));
-                      }).toList(),
+                      _appointmentTypes
+                          .map(
+                            (type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (val) {
                     setState(() {
                       _appointmentType = val;
@@ -255,9 +241,86 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
 
               const SizedBox(height: 16),
               ReasonForVisitField(controller: _reasonController),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-              // 🆕 Dynamic Fee Display
+              // Show Payment Options and Fee only if everything is selected
+              if (_selectedHospital != null &&
+                  _selectedDoctor != null &&
+                  _selectedDate != null &&
+                  _selectedTime != null &&
+                  _appointmentType != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 🆕 Payment Option
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(10),
+                        color: Theme.of(context).colorScheme.surface,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Payment Option',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          ListTile(
+                            title: const Text('Pay Now'),
+                            leading: Radio<bool>(
+                              value: true,
+                              groupValue: _payNow,
+                              onChanged:
+                                  (val) => setState(() => _payNow = val!),
+                            ),
+                          ),
+                          ListTile(
+                            title: const Text('Pay Later (Credit up to R150)'),
+                            leading: Radio<bool>(
+                              value: false,
+                              groupValue: _payNow,
+                              onChanged:
+                                  (val) => setState(() => _payNow = val!),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    // Fee Display
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 16),
+                          const Icon(Icons.payment, color: Colors.green),
+                          const SizedBox(width: 8),
+                          Text(
+                            '$_appointmentType Fee: R${_currentFee ?? 0}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+              const SizedBox(height: 16),
+              // Fee display
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 alignment: Alignment.centerLeft,
@@ -292,7 +355,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                 child: Text(
                   _currentFee == null
                       ? 'Book Appointment'
-                      : 'Book Appointment & Pay R$_currentFee',
+                      : _payNow
+                      ? 'Book & Pay R$_currentFee'
+                      : 'Book & Pay Later',
                 ),
               ),
             ],
