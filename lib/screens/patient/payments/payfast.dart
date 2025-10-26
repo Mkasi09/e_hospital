@@ -2,59 +2,58 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 class PayFastService {
-  // Sandbox credentials
-  static const String merchantId = "10035720";
-  static const String merchantKey = "oa528zbm3y8r9";
-  static const String passphrase =
-      "fnnnssffbsfb"; // Sandbox passphrase is empty
+  // 🔴 LIVE CREDENTIALS
+  static const String merchantId = "21461358";
+  static const String merchantKey = "pty7ewgdz3yqn";
+  static const String passphrase = ""; // live passphrase
 
+  // ✅ Redirect URLs — replace with your real hosted URLs
   static const String returnUrl = "https://yourapp.com/success";
   static const String cancelUrl = "https://yourapp.com/cancel";
   static const String notifyUrl = "https://yourapp.com/notify";
 
-  // Generate PayFast signature
+  // ✅ Generate PayFast signature (MD5)
   static String generateSignature(Map<String, String> data) {
-    // 1. Sort keys alphabetically
     final sortedKeys = data.keys.toList()..sort();
 
-    // 2. Build query string with URL-encoded values
     final paramString = sortedKeys
         .map((key) => "$key=${Uri.encodeQueryComponent(data[key]!)}")
         .join("&");
 
-    // 3. Append passphrase only if not empty
-    final stringToHash =
-        passphrase.isNotEmpty
-            ? "$paramString&passphrase=$passphrase"
-            : paramString;
+    final stringToHash = passphrase.isNotEmpty
+        ? "$paramString&passphrase=$passphrase"
+        : paramString;
 
-    // 4. Return MD5 hash
     return md5.convert(utf8.encode(stringToHash)).toString();
   }
 
-  // Create sandbox payment URL
+  // ✅ Create LIVE PayFast payment URL
   static String createPaymentUrl({
     required double amount,
     required String itemName,
+    String? buyerEmail,
+    String? buyerName,
   }) {
     final data = {
-      "amount": amount.toStringAsFixed(2), // must always have 2 decimals
-      "item_name": itemName,
       "merchant_id": merchantId,
       "merchant_key": merchantKey,
       "return_url": returnUrl,
       "cancel_url": cancelUrl,
       "notify_url": notifyUrl,
+      "amount": amount.toStringAsFixed(2),
+      "item_name": itemName,
+      if (buyerEmail != null) "email_address": buyerEmail,
+      if (buyerName != null) "name_first": buyerName,
     };
 
     final signature = generateSignature(data);
-
     final fullData = {...data, "signature": signature};
 
     final query = fullData.entries
         .map((e) => "${e.key}=${Uri.encodeQueryComponent(e.value)}")
         .join("&");
 
-    return "https://sandbox.payfast.co.za/eng/process?$query";
+    // 🔴 LIVE endpoint for real transactions
+    return "https://www.payfast.co.za/eng/process?$query";
   }
 }

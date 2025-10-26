@@ -215,9 +215,9 @@ class AppointmentService {
       if (payNow) {
         // Launch PayFast
         final payfastUrl =
-            'https://sandbox.payfast.co.za/eng/process?' +
-            'merchant_id=10000100&' +
-            'merchant_key=46f0cd694581a&' +
+            'https://payfast.co.za/eng/process?' +
+            'merchant_id=21461358&' +
+            'merchant_key=pty7ewgdz3yqn&' +
             'return_url=https://yourapp.com/return&' +
             'cancel_url=https://yourapp.com/cancel&' +
             'notify_url=https://yourapp.com/notify&' +

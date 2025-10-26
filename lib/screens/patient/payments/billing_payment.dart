@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:e_hospital/screens/patient/payments/payfast.dart';
 import 'package:e_hospital/screens/patient/payments/payfast_web.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 
 class BillingAndPaymentScreen extends StatefulWidget {
   const BillingAndPaymentScreen({super.key});
@@ -15,7 +17,6 @@ class BillingAndPaymentScreen extends StatefulWidget {
 class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
   final Map<String, bool> selectedBills = {};
 
-  // Mark selected bills as Paid in Firestore
   Future<void> _markBillsAsPaid(List<String> billIds) async {
     final batch = FirebaseFirestore.instance.batch();
     for (var id in billIds) {
@@ -56,15 +57,12 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
             const SizedBox(height: 20),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection('bills')
-                        .where(
-                          'userId',
-                          isEqualTo: FirebaseAuth.instance.currentUser?.uid,
-                        )
-                        .orderBy('timestamp', descending: true)
-                        .snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('bills')
+                    .where('userId',
+                    isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -80,21 +78,17 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                     );
                   }
 
-                  // Separate bills by status
                   final bills = snapshot.data!.docs;
-                  final outstandingBills =
-                      bills.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        return (data['status'] ?? 'Unpaid') != 'Paid';
-                      }).toList();
+                  final outstandingBills = bills.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return (data['status'] ?? 'Unpaid') != 'Paid';
+                  }).toList();
 
-                  final paidBills =
-                      bills.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        return (data['status'] ?? 'Unpaid') == 'Paid';
-                      }).toList();
+                  final paidBills = bills.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return (data['status'] ?? 'Unpaid') == 'Paid';
+                  }).toList();
 
-                  // Calculate total selected
                   double totalSelected = 0.0;
                   for (var doc in outstandingBills) {
                     final id = doc.id;
@@ -105,7 +99,6 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                     }
                   }
 
-                  // Function to build a list of bills
                   Widget buildBillList(List<QueryDocumentSnapshot> billsList) {
                     if (billsList.isEmpty) {
                       return const Padding(
@@ -118,78 +111,66 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                     }
 
                     return Column(
-                      children:
-                          billsList.map((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            final docId = doc.id;
-                            final isSelected = selectedBills[docId] ?? false;
-                            final amount = (data['amount'] ?? 0).toDouble();
-                            final timestamp = data['timestamp'] as Timestamp?;
-                            final dateStr =
-                                timestamp != null
-                                    ? DateFormat.yMMMd().format(
-                                      timestamp.toDate(),
-                                    )
-                                    : 'Unknown date';
+                      children: billsList.map((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final docId = doc.id;
+                        final isSelected = selectedBills[docId] ?? false;
+                        final amount = (data['amount'] ?? 0).toDouble();
+                        final timestamp = data['timestamp'] as Timestamp?;
+                        final dateStr = timestamp != null
+                            ? DateFormat.yMMMd().format(timestamp.toDate())
+                            : 'Unknown date';
 
-                            return ExpansionTile(
-                              title: Text(
-                                data['title'] ?? 'No Title',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color:
-                                      data['status'] == 'Paid'
-                                          ? Colors.green.shade700
-                                          : Colors.black87,
-                                ),
-                              ),
-                              subtitle: Text(
-                                'Amount: R${amount.toStringAsFixed(2)} | Date: $dateStr',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              leading:
+                        return ExpansionTile(
+                          title: Text(
+                            data['title'] ?? 'No Title',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: data['status'] == 'Paid'
+                                  ? Colors.green.shade700
+                                  : Colors.black87,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Amount: R${amount.toStringAsFixed(2)} | Date: $dateStr',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          leading: data['status'] == 'Paid'
+                              ? const Icon(Icons.check_circle,
+                              color: Colors.green)
+                              : Checkbox(
+                            value: isSelected,
+                            onChanged: (val) {
+                              setState(() {
+                                selectedBills[docId] = val ?? false;
+                              });
+                            },
+                          ),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              child: Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Bill ID: $docId',
+                                      style: const TextStyle(fontSize: 12)),
                                   data['status'] == 'Paid'
-                                      ? const Icon(
-                                        Icons.check_circle,
-                                        color: Colors.green,
-                                      )
-                                      : Checkbox(
-                                        value: isSelected,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            selectedBills[docId] = val ?? false;
-                                          });
-                                        },
-                                      ),
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Bill ID: $docId',
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                      data['status'] == 'Paid'
-                                          ? const Text(
-                                            'Paid',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          )
-                                          : const SizedBox.shrink(),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            );
-                          }).toList(),
+                                      ? const Text(
+                                    'Paid',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                      : const SizedBox.shrink(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
                     );
                   }
 
@@ -200,9 +181,7 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 12,
-                          ),
+                              vertical: 8, horizontal: 12),
                           decoration: BoxDecoration(
                             color: Colors.red.shade50,
                             borderRadius: BorderRadius.circular(8),
@@ -210,9 +189,7 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                           child: const Text(
                             'Outstanding Bills',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -222,9 +199,7 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 12,
-                          ),
+                              vertical: 8, horizontal: 12),
                           decoration: BoxDecoration(
                             color: Colors.green.shade50,
                             borderRadius: BorderRadius.circular(8),
@@ -232,21 +207,18 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                           child: const Text(
                             'Paid Bills',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                         const SizedBox(height: 8),
                         buildBillList(paidBills),
                         const SizedBox(height: 20),
-                        // Total Selected and Pay button
+
+                        // Total and Pay button
                         if (totalSelected > 0)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
+                                horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
                               color: Colors.teal.shade50,
                               borderRadius: BorderRadius.circular(12),
@@ -257,9 +229,8 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                               children: [
                                 Text(
                                   'Total Selected:',
-                                  style: textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 Text(
                                   'R${totalSelected.toStringAsFixed(2)}',
@@ -277,34 +248,32 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: () async {
-                                final selectedIds =
-                                    outstandingBills
-                                        .where(
-                                          (doc) =>
-                                              selectedBills[doc.id] == true,
-                                        )
-                                        .map((doc) => doc.id)
-                                        .toList();
+                                final selectedIds = outstandingBills
+                                    .where((doc) =>
+                                selectedBills[doc.id] == true)
+                                    .map((doc) => doc.id)
+                                    .toList();
 
                                 if (selectedIds.isEmpty) return;
 
+                                // ✅ Generate live PayFast payment URL using service
                                 final payfastUrl =
-                                    'https://sandbox.payfast.co.za/eng/process?' +
-                                    'merchant_id=10000100&' +
-                                    'merchant_key=46f0cd694581a&' +
-                                    'return_url=https://yourapp.com/return&' +
-                                    'cancel_url=https://yourapp.com/cancel&' +
-                                    'notify_url=https://yourapp.com/notify&' +
-                                    'amount=${totalSelected.toStringAsFixed(2)}&' +
-                                    'item_name=Billing Payment&' +
-                                    'custom_str1=${FirebaseAuth.instance.currentUser?.uid ?? ''}';
+                                PayFastService.createPaymentUrl(
+                                  amount: totalSelected,
+                                  itemName: 'Billing Payment',
+                                  buyerName: FirebaseAuth
+                                      .instance.currentUser?.displayName ??
+                                      'Patient',
+                                  buyerEmail: FirebaseAuth
+                                      .instance.currentUser?.email ??
+                                      '',
+                                );
 
                                 final paid = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder:
-                                        (context) =>
-                                            PayFastWebView(url: payfastUrl),
+                                    builder: (context) =>
+                                        PayFastWebView(url: payfastUrl),
                                   ),
                                 );
 
@@ -315,7 +284,6 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                                       selectedBills[id] = false;
                                     }
                                   });
-
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Payment successful!'),
@@ -324,18 +292,14 @@ class _BillingAndPaymentScreenState extends State<BillingAndPaymentScreen> {
                                   );
                                 }
                               },
-                              icon: const Icon(
-                                Icons.payment,
-                                color: Color(0xFFE0F2F1),
-                              ),
+                              icon: const Icon(Icons.payment,
+                                  color: Color(0xFFE0F2F1)),
                               label: const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 14),
                                 child: Text(
                                   'Pay Selected',
                                   style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
+                                      fontSize: 16, color: Colors.white),
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
