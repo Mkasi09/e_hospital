@@ -296,26 +296,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen>
                     ),
 
                     const SizedBox(height: 16),
-                    // Fee Display
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16),
-                          const Icon(Icons.payment, color: Colors.green),
-                          const SizedBox(width: 8),
-                          Text(
-                            '$_appointmentType Fee: R${_currentFee ?? 0}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
 

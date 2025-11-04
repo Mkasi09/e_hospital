@@ -15,7 +15,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, String>> messages = [];
-  final String apiKey = "AIzaSyCMOQFcp4NJK_bfGbk80C89TbF1QGQW-HI";
+  final String apiKey = "AIzaSyClvkTc8h92DOMSp6v66T-xT8XaQD0LPVw";
 
   @override
   void initState() {
