@@ -35,7 +35,7 @@ class HospitalDropdown extends StatelessWidget {
             child: const Icon(Icons.local_hospital, color: Colors.blueAccent),
           ),
           const SizedBox(width: 14),
-         Expanded(
+          Expanded(
             child: TypeAheadFormField<String>(
               textFieldConfiguration: TextFieldConfiguration(
                 controller: controller,
@@ -47,14 +47,21 @@ class HospitalDropdown extends StatelessWidget {
               ),
               suggestionsCallback: (pattern) async {
                 if (pattern.isEmpty) return [];
+
                 final snapshot =
                     await FirebaseFirestore.instance
                         .collection('hospitals')
-                        .where('name', isGreaterThanOrEqualTo: pattern)
-                        .where('name', isLessThan: pattern + 'z')
                         .get();
 
+                // Client-side case-insensitive filtering
+                final lowercasePattern = pattern.toLowerCase();
                 return snapshot.docs
+                    .where((doc) {
+                      final hospitalName = doc['name'] as String? ?? '';
+                      return hospitalName.toLowerCase().contains(
+                        lowercasePattern,
+                      );
+                    })
                     .map((doc) => doc['name'] as String)
                     .toList();
               },

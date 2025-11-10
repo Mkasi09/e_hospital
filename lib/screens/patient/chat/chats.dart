@@ -33,6 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
+  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref();
 
   @override
   void initState() {
@@ -134,14 +135,18 @@ class _ChatScreenState extends State<ChatScreen> {
                               physics: const BouncingScrollPhysics(),
                               itemBuilder: (context, index) {
                                 if (index < sorted.length) {
+                                  final messageEntry = sorted[index];
+                                  final messageKey =
+                                      messageEntry.key; // Get the message key
                                   final msg = Map<String, dynamic>.from(
-                                    sorted[index].value,
+                                    messageEntry.value,
                                   );
 
                                   // Show date header for new days
                                   if (index > 0) {
+                                    final prevEntry = sorted[index - 1];
                                     final prevMsg = Map<String, dynamic>.from(
-                                      sorted[index - 1].value,
+                                      prevEntry.value,
                                     );
                                     if (_isDifferentDay(
                                       prevMsg['timestamp'] as int,
@@ -157,6 +162,18 @@ class _ChatScreenState extends State<ChatScreen> {
                                             isMe:
                                                 msg['senderId'] ==
                                                 widget.currentUserId,
+                                            messageId: messageKey,
+                                            onReport:
+                                                () => _showReportDialog(
+                                                  messageKey,
+                                                  msg,
+                                                ),
+                                            onLongPress:
+                                                () {}, // Handled internally
+                                            isDeleted: msg['deleted'] == true,
+                                            isReported: _isMessageReported(
+                                              messageKey,
+                                            ),
                                           ),
                                         ],
                                       );
@@ -167,6 +184,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                     message: msg,
                                     isMe:
                                         msg['senderId'] == widget.currentUserId,
+                                    messageId: messageKey,
+                                    onReport:
+                                        () =>
+                                            _showReportDialog(messageKey, msg),
+                                    onLongPress: () {}, // Handled internally
+                                    isDeleted: msg['deleted'] == true,
+                                    isReported: _isMessageReported(messageKey),
                                   );
                                 } else {
                                   return const TypingIndicator();
@@ -193,6 +217,195 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  // Check if a message is reported
+  bool _isMessageReported(String messageId) {
+    // You'll need to implement this based on your reports structure
+    // For now, return false - you can implement this later
+    return false;
+  }
+
+  // Enhanced Report Dialog with reasons
+  void _showReportDialog(String messageId, Map<String, dynamic> message) {
+    final reasons = [
+      'Inappropriate content',
+      'Harassment or bullying',
+      'Spam or misleading information',
+      'Privacy violation',
+      'Medical misinformation',
+      'Other',
+    ];
+
+    String? selectedReason;
+    final descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                title: const Row(
+                  children: [
+                    Icon(Icons.flag, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Report Message'),
+                  ],
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Message:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          message['text']?.toString() ?? '',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Select reason:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...reasons
+                          .map(
+                            (reason) => RadioListTile<String>(
+                              title: Text(reason),
+                              value: reason,
+                              groupValue: selectedReason,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  selectedReason = value;
+                                });
+                              },
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          )
+                          .toList(),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Additional details (optional)',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    onPressed:
+                        selectedReason == null
+                            ? null
+                            : () {
+                              _submitReport(
+                                messageId,
+                                message,
+                                selectedReason!,
+                                descriptionController.text,
+                              );
+                              Navigator.pop(context);
+                            },
+                    child: const Text(
+                      'Report',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+    );
+  }
+
+  // Submit report to Firebase
+  void _submitReport(
+    String messageId,
+    Map<String, dynamic> message,
+    String reason,
+    String description,
+  ) async {
+    try {
+      final reportData = {
+        'messageId': messageId,
+        'messageText': message['text']?.toString() ?? '',
+        'senderId': message['senderId']?.toString() ?? '',
+        'senderName':
+            message['senderId'] == widget.currentUserId
+                ? 'You'
+                : widget.peerName,
+        'reportedBy': widget.currentUserId,
+        'reportedByName': 'User', // You might want to get the actual user name
+        'reason': reason,
+        'description': description,
+        'timestamp': ServerValue.timestamp,
+        'status': 'pending',
+        'chatId': widget.chatId,
+      };
+
+      await _databaseRef
+          .child('reports')
+          .child(widget.chatId)
+          .child(messageId)
+          .set(reportData);
+
+      // Also add to chat's reports for easy access
+      await _databaseRef
+          .child('chats')
+          .child(widget.chatId)
+          .child('reports')
+          .child(messageId)
+          .set(reportData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Message reported successfully'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to report message: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   PreferredSizeWidget _buildAppBar() {

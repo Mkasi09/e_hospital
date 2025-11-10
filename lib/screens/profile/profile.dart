@@ -36,10 +36,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String medications = '';
   String primaryDoctor = '';
 
+  // Professional info
   String specialty = '';
   String hospital = '';
   String licenseNumber = '';
+
   bool _isLoading = true;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -49,52 +52,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickAndUploadImage() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 80,
+    );
 
     if (pickedFile == null) return;
 
-    final file = File(pickedFile.path);
-    final cloudinaryUploadUrl = Uri.parse(
-      'https://api.cloudinary.com/v1_1/dzz3iovq5/raw/upload',
-    );
+    setState(() {
+      _isUploadingImage = true;
+    });
 
-    final request =
-        http.MultipartRequest('POST', cloudinaryUploadUrl)
-          ..fields['upload_preset'] = 'ehospital'
-          ..files.add(await http.MultipartFile.fromPath('file', file.path));
+    try {
+      final file = File(pickedFile.path);
+      final cloudinaryUploadUrl = Uri.parse(
+        'https://api.cloudinary.com/v1_1/dzz3iovq5/image/upload', // Changed to image upload
+      );
 
-    final response = await request.send();
+      final request =
+          http.MultipartRequest('POST', cloudinaryUploadUrl)
+            ..fields['upload_preset'] = 'ehospital'
+            ..files.add(await http.MultipartFile.fromPath('file', file.path));
 
-    if (response.statusCode == 200) {
-      final resStr = await response.stream.bytesToString();
-      final data = json.decode(resStr);
-      final secureUrl = data['secure_url'];
+      final response = await request.send();
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .update({'profilePicture': secureUrl});
+      if (response.statusCode == 200) {
+        final resStr = await response.stream.bytesToString();
+        final data = json.decode(resStr);
+        final secureUrl = data['secure_url'];
 
-        setState(() {
-          profilePicture = secureUrl;
-        });
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .update({'profilePicture': secureUrl});
 
+          setState(() {
+            profilePicture = secureUrl;
+          });
+
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Profile picture updated successfully"),
+              backgroundColor: Color(0xFF00796B),
+            ),
+          );
+        }
+      } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Profile picture updated"),
-            backgroundColor: const Color(0xFF00796B),
+          const SnackBar(
+            content: Text("Failed to upload image"),
+            backgroundColor: Colors.red,
           ),
         );
       }
-    } else {
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to upload image"),
+        SnackBar(
+          content: Text("Error uploading image: ${e.toString()}"),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isUploadingImage = false;
+      });
     }
   }
 
@@ -102,123 +130,200 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final doc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        final addressData = data['address'] as Map<String, dynamic>?;
-        final medicalData = data['medicalInfo'] as Map<String, dynamic>? ?? {};
+      try {
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
 
+        if (doc.exists) {
+          final data = doc.data()!;
+          final addressData = data['address'] as Map<String, dynamic>? ?? {};
+          final medicalData =
+              data['medicalInfo'] as Map<String, dynamic>? ?? {};
+
+          setState(() {
+            fullName = data['fullName'] ?? data['name'] ?? 'Not provided';
+            email = user.email ?? 'Not provided';
+            profilePicture = data['profilePicture'];
+            role = data['role'] ?? 'patient';
+            phone = data['phone'] ?? 'Not provided';
+            id = data['id'] ?? 'Not provided';
+            gender = data['gender']?.toString().capitalize() ?? 'Not provided';
+
+            nextOfKin = data['nextOfKin'] ?? 'Not provided';
+            nextOfKinPhone = data['nextOfKinPhone'] ?? 'Not provided';
+
+            // Better address formatting
+            address = _formatAddress(addressData);
+
+            // Parse DOB from ID or use direct DOB field
+            dob = data['dateOfBirth'] ?? _parseDobFromId(id);
+
+            // Medical info
+            bloodGroup = medicalData['bloodGroup'] ?? 'Not provided';
+            allergies = medicalData['allergies'] ?? 'None';
+            chronicConditions = medicalData['chronicConditions'] ?? 'None';
+            medications = medicalData['medications'] ?? 'None';
+            primaryDoctor = medicalData['primaryDoctor'] ?? 'Not assigned';
+
+            // Professional info
+            specialty = data['specialty'] ?? 'Not specified';
+            hospital = data['hospitalName'] ?? 'Not assigned';
+            licenseNumber = data['licenseNumber'] ?? 'Not provided';
+
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+          _showErrorDialog('User data not found');
+        }
+      } catch (e) {
         setState(() {
-          fullName = data['fullName'] ?? data['name'] ?? '';
-          email = user.email ?? '';
-          profilePicture = data['profilePicture'];
-          role = data['role'] ?? '';
-          phone = data['phone'] ?? '';
-          id = data['id'] ?? '';
-          gender = data['gender'] ?? '';
-          dob = _parseDobFromId(id);
-
-          nextOfKin = data['nextOfKin'] ?? '';
-          nextOfKinPhone = data['nextOfKinPhone'] ?? '';
-
-          address =
-              addressData != null
-                  ? '${addressData['street'] ?? ''}, ${addressData['city'] ?? ''}, ${addressData['province'] ?? ''}, ${addressData['postalCode'] ?? ''}, ${addressData['country'] ?? ''}'
-                  : '';
-
-          bloodGroup = medicalData['bloodGroup'] ?? '';
-          allergies = medicalData['allergies'] ?? '';
-          chronicConditions = medicalData['chronicConditions'] ?? '';
-          medications = medicalData['medications'] ?? '';
-          primaryDoctor = medicalData['primaryDoctor'] ?? '';
-
-          specialty = data['specialty'] ?? '';
-          hospital = data['hospitalName'] ?? '';
-          licenseNumber = data['licenseNumber'] ?? '';
-
           _isLoading = false;
         });
+        _showErrorDialog('Error loading profile: ${e.toString()}');
       }
     }
   }
 
+  String _formatAddress(Map<String, dynamic> addressData) {
+    if (addressData.isEmpty) return 'Not provided';
+
+    final parts =
+        [
+          addressData['street'],
+          addressData['city'],
+          addressData['province'],
+          addressData['postalCode'],
+          addressData['country'],
+        ].where((part) => part != null && part.toString().isNotEmpty).toList();
+
+    return parts.isNotEmpty ? parts.join(', ') : 'Not provided';
+  }
+
   String _parseDobFromId(String idNumber) {
-    if (idNumber.length < 6) return '';
+    if (idNumber.length < 6 || idNumber == 'Not provided')
+      return 'Not provided';
 
     try {
       final year = int.parse(idNumber.substring(0, 2));
       final month = int.parse(idNumber.substring(2, 4));
       final day = int.parse(idNumber.substring(4, 6));
 
+      // Validate date
+      if (month < 1 || month > 12 || day < 1 || day > 31) {
+        return 'Not provided';
+      }
+
       final currentYear = DateTime.now().year;
       final century = (year > currentYear % 100) ? 1900 : 2000;
       final fullYear = century + year;
 
       final date = DateTime(fullYear, month, day);
-      return "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
+
+      // Check if date is in future (invalid)
+      if (date.isAfter(DateTime.now())) {
+        return 'Not provided';
+      }
+
+      return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
     } catch (e) {
-      return '';
+      return 'Not provided';
     }
   }
 
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+  }
+
   void _showEditProfileDialog() {
-    final phoneController = TextEditingController(text: phone);
-    final nextOfKinController = TextEditingController(text: nextOfKin);
+    final phoneController = TextEditingController(
+      text: phone != 'Not provided' ? phone : '',
+    );
+    final nextOfKinController = TextEditingController(
+      text: nextOfKin != 'Not provided' ? nextOfKin : '',
+    );
     final nextOfKinPhoneController = TextEditingController(
-      text: nextOfKinPhone,
+      text: nextOfKinPhone != 'Not provided' ? nextOfKinPhone : '',
     );
 
-    // Parse address parts or use empty strings
-    final parts = address.split(',').map((e) => e.trim()).toList();
+    // Get address parts
+    final addressData = _getAddressParts();
     final streetController = TextEditingController(
-      text: parts.isNotEmpty ? parts[0] : '',
+      text: addressData['street'] ?? '',
     );
     final cityController = TextEditingController(
-      text: parts.length > 1 ? parts[1] : '',
+      text: addressData['city'] ?? '',
     );
     final provinceController = TextEditingController(
-      text: parts.length > 2 ? parts[2] : '',
+      text: addressData['province'] ?? '',
     );
     final postalCodeController = TextEditingController(
-      text: parts.length > 3 ? parts[3] : '',
+      text: addressData['postalCode'] ?? '',
     );
     final countryController = TextEditingController(
-      text: parts.length > 4 ? parts[4] : '',
+      text: addressData['country'] ?? '',
     );
 
     // Medical info controllers
-    final bloodGroupController = TextEditingController(text: bloodGroup);
-    final allergiesController = TextEditingController(text: allergies);
-    final chronicConditionsController = TextEditingController(
-      text: chronicConditions,
+    final bloodGroupController = TextEditingController(
+      text: bloodGroup != 'Not provided' ? bloodGroup : '',
     );
-    final medicationsController = TextEditingController(text: medications);
-    final primaryDoctorController = TextEditingController(text: primaryDoctor);
+    final allergiesController = TextEditingController(
+      text: allergies != 'None' ? allergies : '',
+    );
+    final chronicConditionsController = TextEditingController(
+      text: chronicConditions != 'None' ? chronicConditions : '',
+    );
+    final medicationsController = TextEditingController(
+      text: medications != 'None' ? medications : '',
+    );
+    final primaryDoctorController = TextEditingController(
+      text: primaryDoctor != 'Not assigned' ? primaryDoctor : '',
+    );
 
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
             title: const Text(
-              'Edit Personal & Medical Info',
+              'Edit Profile Information',
               style: TextStyle(color: Color(0xFF00796B)),
             ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Personal Details',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF00796B),
+                  // Personal Details Section
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Personal Details',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00796B),
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   _buildTextField(
                     phoneController,
                     'Phone Number',
@@ -230,7 +335,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'Next of Kin Phone',
                     TextInputType.phone,
                   ),
-                  const SizedBox(height: 12),
+
+                  // Address Section
+                  const SizedBox(height: 16),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Address',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00796B),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   _buildTextField(streetController, 'Street'),
                   _buildTextField(cityController, 'City'),
                   _buildTextField(provinceController, 'Province'),
@@ -240,32 +359,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     TextInputType.number,
                   ),
                   _buildTextField(countryController, 'Country'),
-                  const Divider(height: 32),
-                  const Text(
-                    'Medical Information',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF00796B),
+
+                  // Medical Information Section (only for patients)
+                  if (role != 'doctor') ...[
+                    const SizedBox(height: 16),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Medical Information',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00796B),
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildTextField(bloodGroupController, 'Blood Group'),
-                  _buildTextField(
-                    allergiesController,
-                    'Allergies',
-                    TextInputType.multiline,
-                  ),
-                  _buildTextField(
-                    chronicConditionsController,
-                    'Chronic Conditions',
-                    TextInputType.multiline,
-                  ),
-                  _buildTextField(
-                    medicationsController,
-                    'Medications',
-                    TextInputType.multiline,
-                  ),
-                  _buildTextField(primaryDoctorController, 'Primary Doctor'),
+                    const SizedBox(height: 8),
+                    _buildTextField(bloodGroupController, 'Blood Group'),
+                    _buildTextField(
+                      allergiesController,
+                      'Allergies',
+                      TextInputType.multiline,
+                    ),
+                    _buildTextField(
+                      chronicConditionsController,
+                      'Chronic Conditions',
+                      TextInputType.multiline,
+                    ),
+                    _buildTextField(
+                      medicationsController,
+                      'Current Medications',
+                      TextInputType.multiline,
+                    ),
+                    _buildTextField(primaryDoctorController, 'Primary Doctor'),
+                  ],
                 ],
               ),
             ),
@@ -274,7 +401,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
                   'Cancel',
-                  style: TextStyle(color: Color(0xFF00796B)),
+                  style: TextStyle(color: Colors.grey),
                 ),
               ),
               ElevatedButton(
@@ -284,46 +411,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onPressed: () async {
                   final user = FirebaseAuth.instance.currentUser;
                   if (user != null) {
-                    final addressData = {
-                      'street': streetController.text.trim(),
-                      'city': cityController.text.trim(),
-                      'province': provinceController.text.trim(),
-                      'postalCode': postalCodeController.text.trim(),
-                      'country': countryController.text.trim(),
-                    };
-                    final medicalData = {
-                      'bloodGroup': bloodGroupController.text.trim(),
-                      'allergies': allergiesController.text.trim(),
-                      'chronicConditions':
-                          chronicConditionsController.text.trim(),
-                      'medications': medicationsController.text.trim(),
-                      'primaryDoctor': primaryDoctorController.text.trim(),
-                    };
+                    try {
+                      final addressData = {
+                        'street': streetController.text.trim(),
+                        'city': cityController.text.trim(),
+                        'province': provinceController.text.trim(),
+                        'postalCode': postalCodeController.text.trim(),
+                        'country': countryController.text.trim(),
+                      };
 
-                    await FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(user.uid)
-                        .update({
-                          'phone': phoneController.text.trim(),
-                          'nextOfKin': nextOfKinController.text.trim(),
-                          'nextOfKinPhone':
-                              nextOfKinPhoneController.text.trim(),
-                          'address': addressData,
-                          'medicalInfo': medicalData,
-                        });
+                      final medicalData = {
+                        'bloodGroup': bloodGroupController.text.trim(),
+                        'allergies': allergiesController.text.trim(),
+                        'chronicConditions':
+                            chronicConditionsController.text.trim(),
+                        'medications': medicationsController.text.trim(),
+                        'primaryDoctor': primaryDoctorController.text.trim(),
+                      };
 
-                    Navigator.pop(context);
-                    _loadUserData();
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .update({
+                            'phone': phoneController.text.trim(),
+                            'nextOfKin': nextOfKinController.text.trim(),
+                            'nextOfKinPhone':
+                                nextOfKinPhoneController.text.trim(),
+                            'address': addressData,
+                            if (role != 'doctor') 'medicalInfo': medicalData,
+                          });
+
+                      if (!mounted) return;
+                      Navigator.pop(context);
+                      _loadUserData();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Profile updated successfully"),
+                          backgroundColor: Color(0xFF00796B),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Error updating profile: ${e.toString()}",
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
                 },
                 child: const Text(
-                  'Save',
+                  'Save Changes',
                   style: TextStyle(color: Colors.white),
                 ),
               ),
             ],
           ),
     );
+  }
+
+  Map<String, String> _getAddressParts() {
+    if (address == 'Not provided') return {};
+
+    final parts = address.split(',');
+    return {
+      'street': parts.length > 0 ? parts[0].trim() : '',
+      'city': parts.length > 1 ? parts[1].trim() : '',
+      'province': parts.length > 2 ? parts[2].trim() : '',
+      'postalCode': parts.length > 3 ? parts[3].trim() : '',
+      'country': parts.length > 4 ? parts[4].trim() : '',
+    };
   }
 
   Widget _buildTextField(
@@ -388,49 +549,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: _showEditProfileDialog,
             tooltip: 'Edit Profile',
           ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadUserData,
+            tooltip: 'Refresh',
+          ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         children: [
+          // Profile Header
           Center(
             child: Stack(
               children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: const Color(0xFF00796B).withOpacity(0.1),
-                  backgroundImage:
-                      profilePicture != null && profilePicture!.isNotEmpty
-                          ? NetworkImage(profilePicture!)
-                          : null,
-                  child:
-                      (profilePicture == null || profilePicture!.isEmpty)
-                          ? Text(
-                            fullName.isNotEmpty
-                                ? fullName[0].toUpperCase()
-                                : '',
-                            style: const TextStyle(
-                              fontSize: 40,
-                              color: Color(0xFF00796B),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                          : null,
-                ),
+                _isUploadingImage
+                    ? Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00796B).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const CircularProgressIndicator(
+                        color: Color(0xFF00796B),
+                      ),
+                    )
+                    : CircleAvatar(
+                      radius: 60,
+                      backgroundColor: const Color(0xFF00796B).withOpacity(0.1),
+                      backgroundImage:
+                          profilePicture != null && profilePicture!.isNotEmpty
+                              ? NetworkImage(profilePicture!)
+                              : null,
+                      child:
+                          (profilePicture == null || profilePicture!.isEmpty)
+                              ? Text(
+                                fullName.isNotEmpty
+                                    ? fullName[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  fontSize: 40,
+                                  color: Color(0xFF00796B),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                              : null,
+                    ),
                 Positioned(
                   bottom: 0,
                   right: 0,
                   child: GestureDetector(
-                    onTap: _pickAndUploadImage,
+                    onTap: _isUploadingImage ? null : _pickAndUploadImage,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00796B),
+                        color:
+                            _isUploadingImage
+                                ? Colors.grey
+                                : const Color(0xFF00796B),
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
                       padding: const EdgeInsets.all(6),
-                      child: const Icon(
-                        Icons.camera_alt,
+                      child: Icon(
+                        _isUploadingImage
+                            ? Icons.hourglass_top
+                            : Icons.camera_alt,
                         size: 20,
                         color: Colors.white,
                       ),
@@ -460,96 +644,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
           ),
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00796B).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                role.toUpperCase(),
+                style: const TextStyle(
+                  color: Color(0xFF00796B),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
 
           const SizedBox(height: 32),
 
           // Personal Details Container
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00796B).withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
+          _buildInfoContainer(
+            title: 'Personal Details',
+            children: [
+              _infoRow('ID Number', id),
+              _infoRow('Gender', gender),
+              _infoRow('Date of Birth', dob),
+              _infoRow('Phone Number', phone),
+              if (!isDoctor) ...[
+                _infoRow('Next of Kin', nextOfKin),
+                if (nextOfKinPhone != 'Not provided')
+                  _infoRow('Kin Phone', nextOfKinPhone),
               ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Personal Details',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF00796B),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _infoRow('ID Number', id),
-                _infoRow('Gender', gender),
-                _infoRow('Date of Birth', dob),
-                _infoRow('Phone Number', phone),
-                if (!isDoctor) ...[
-                  _infoRow(
-                    'Next of Kin',
-                    nextOfKin.isNotEmpty
-                        ? (nextOfKinPhone.isNotEmpty
-                            ? '$nextOfKin ($nextOfKinPhone)'
-                            : nextOfKin)
-                        : '',
-                  ),
-                  _infoRow('Address', address),
-                ],
-              ],
-            ),
+              _infoRow('Address', address),
+            ],
           ),
 
           // Professional/Medical Info Container
-          Container(
-            margin: const EdgeInsets.only(top: 20),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00796B).withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isDoctor ? 'Professional Information' : 'Medical Information',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF00796B),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (isDoctor) ...[
-                  _infoRow('Specialty', specialty),
-                  _infoRow('Hospital', hospital),
-                  _infoRow('License No.', licenseNumber),
-                ] else ...[
-                  _infoRow('Next of Kin', nextOfKin),
-                  _infoRow('Kin Phone', nextOfKinPhone),
-                  _infoRow('Blood Group', bloodGroup),
-                  _infoRow('Allergies', allergies),
-                  _infoRow('Chronic Conditions', chronicConditions),
-                  _infoRow('Medications', medications),
-                  _infoRow('Primary Doctor', primaryDoctor),
-                ],
-              ],
-            ),
+          _buildInfoContainer(
+            title:
+                isDoctor ? 'Professional Information' : 'Medical Information',
+            children:
+                isDoctor
+                    ? [
+                      _infoRow('Specialty', specialty),
+                      _infoRow('Hospital', hospital),
+                      _infoRow('License Number', licenseNumber),
+                    ]
+                    : [
+                      _infoRow('Blood Group', bloodGroup),
+                      _infoRow('Allergies', allergies),
+                      _infoRow('Chronic Conditions', chronicConditions),
+                      _infoRow('Current Medications', medications),
+                      _infoRow('Primary Doctor', primaryDoctor),
+                    ],
           ),
 
           const SizedBox(height: 40),
@@ -558,16 +708,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildInfoContainer({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00796B).withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00796B),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
   Widget _infoRow(String label, String value) {
+    final isEmpty =
+        value.isEmpty ||
+        value == 'Not provided' ||
+        value == 'None' ||
+        value == 'Not assigned';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 140,
             child: Text(
-              "$label: ",
+              "$label:",
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
@@ -577,12 +769,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           Expanded(
             child: Text(
-              value.isNotEmpty ? value : "Not provided",
-              style: TextStyle(fontSize: 15, color: Colors.grey.shade800),
+              isEmpty ? "Not provided" : value,
+              style: TextStyle(
+                fontSize: 15,
+                color: isEmpty ? Colors.grey.shade500 : Colors.grey.shade800,
+                fontStyle: isEmpty ? FontStyle.italic : FontStyle.normal,
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+// Extension for string capitalization
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }

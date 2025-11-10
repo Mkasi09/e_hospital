@@ -4,39 +4,107 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../doctor/schedule/schedule_screen.dart';
+import '../payments/payfast.dart';
+
 class AppointmentService {
   static final CollectionReference _appointmentsRef = FirebaseFirestore.instance
       .collection('appointments');
+
+  // Fetch booked time slots for a doctor on a given day
+  static Future<List<String>> fetchBookedSlots(
+    String doctorId,
+    DateTime date,
+  ) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final snapshot =
+        await _appointmentsRef
+            .where('doctorId', isEqualTo: doctorId)
+            .where(
+              'date',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+            )
+            .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+            .get();
+
+    // Assuming each appointment has a 'time' field like '09:00'
+    return snapshot.docs.map((doc) => doc['time'] as String).toList();
+  }
+
   static final CollectionReference _notificationsRef = FirebaseFirestore
       .instance
       .collection('notifications');
   static final CollectionReference _billsRef = FirebaseFirestore.instance
       .collection('bills');
 
-  static Future<List<String>> fetchBookedSlots(
+  static Future<List<String>> fetchAvailableSlots(
     String doctorId,
-    DateTime selectedDate,
+    DateTime date,
   ) async {
-    final snapshot =
-        await _appointmentsRef.where('doctorId', isEqualTo: doctorId).get();
+    // 1. Fetch booked slots
+    final bookedSnapshot =
+        await FirebaseFirestore.instance
+            .collection('appointments')
+            .where('doctorId', isEqualTo: doctorId)
+            .where(
+              'date',
+              isGreaterThanOrEqualTo: DateTime(date.year, date.month, date.day),
+            )
+            .where(
+              'date',
+              isLessThan: DateTime(date.year, date.month, date.day, 23, 59, 59),
+            )
+            .get();
 
-    final bookedTimes = <String>[];
+    final bookedSlots =
+        bookedSnapshot.docs.map((doc) => doc.data()['time'] as String).toList();
 
-    for (var doc in snapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final Timestamp dateTimestamp = data['date'];
-      final String timeString = data['time'];
-      final appointmentDate = dateTimestamp.toDate();
+    // 2. Fetch availability
+    final availabilityDoc =
+        await FirebaseFirestore.instance
+            .collection('doctor_availability')
+            .doc(doctorId)
+            .get();
 
-      if (DateUtils.isSameDay(appointmentDate, selectedDate)) {
-        final parts = timeString.split(':');
-        final hour = parts[0].padLeft(2, '0');
-        final minute = parts[1].padLeft(2, '0');
-        bookedTimes.add('$hour:$minute');
+    final weekday = date.weekday; // Monday = 1
+    List<String> availableSlots = [];
+
+    if (availabilityDoc.exists) {
+      final data = availabilityDoc.data()!;
+      final ranges =
+          (data[weekday.toString()] as List?)
+              ?.map((r) => AvailabilityRange.fromMap(r))
+              .toList();
+
+      if (ranges != null) {
+        for (var range in ranges) {
+          var slotTime = DateTime(
+            0,
+            1,
+            1,
+            range.start.hour,
+            range.start.minute,
+          );
+          final endTime = DateTime(0, 1, 1, range.end.hour, range.end.minute);
+
+          while (!slotTime.isAfter(
+            endTime.subtract(const Duration(minutes: 30)),
+          )) {
+            final slotString =
+                '${slotTime.hour.toString().padLeft(2, '0')}:${slotTime.minute.toString().padLeft(2, '0')}';
+            availableSlots.add(slotString);
+            slotTime = slotTime.add(const Duration(minutes: 30));
+          }
+        }
       }
     }
 
-    return bookedTimes;
+    // 3. Remove booked slots
+    availableSlots.removeWhere((slot) => bookedSlots.contains(slot));
+
+    return availableSlots;
   }
 
   static Future<double> fetchOutstandingBalance(String userId) async {
@@ -214,22 +282,9 @@ class AppointmentService {
       // Payment handling
       if (payNow) {
         // Launch PayFast
-        final payfastUrl =
-            'https://payfast.co.za/eng/process?' +
-            'merchant_id=21461358&' +
-            'merchant_key=pty7ewgdz3yqn&' +
-            'return_url=https://yourapp.com/return&' +
-            'cancel_url=https://yourapp.com/cancel&' +
-            'notify_url=https://yourapp.com/notify&' +
-            'amount=${fee.toStringAsFixed(2)}&' +
-            'item_name=$appointmentType Payment&' +
-            'custom_str1=$userId';
-
-        final paid = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PayFastWebView(url: payfastUrl),
-          ),
+        final paid = await PayFastService.initiatePayment(
+          context: context,
+          amount: fee.toDouble(), // convert int → double
         );
 
         if (paid == true) {

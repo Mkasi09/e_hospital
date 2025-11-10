@@ -31,10 +31,8 @@ class _LoginPageState extends State<LoginPage> {
   // Account status check
   Future<Map<String, dynamic>?> _checkAccountStatus(String uid) async {
     try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (!userDoc.exists) {
         return null;
@@ -51,10 +49,13 @@ class _LoginPageState extends State<LoginPage> {
 
   String _getSuspensionMessage(Map<String, dynamic> statusData) {
     final endDate = statusData['suspensionEndDate'] as Timestamp?;
-    final reason = statusData['suspensionReason']?.toString() ?? 'Violation of terms';
+    final reason =
+        statusData['suspensionReason']?.toString() ?? 'Violation of terms';
 
     if (endDate != null) {
-      final formattedDate = DateFormat('MMMM dd, yyyy – HH:mm').format(endDate.toDate());
+      final formattedDate = DateFormat(
+        'MMMM dd, yyyy – HH:mm',
+      ).format(endDate.toDate());
       return 'Your account has been suspended until $formattedDate.\nReason: $reason';
     }
 
@@ -62,9 +63,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   String _getBanMessage(Map<String, dynamic> statusData) {
-    final reason = statusData['banReason']?.toString() ?? 'Serious violation of terms';
+    final reason =
+        statusData['banReason']?.toString() ?? 'Serious violation of terms';
     return 'Your account has been permanently banned.\nReason: $reason\n\nContact support if you believe this is a mistake.';
   }
+
   Future<void> _emailSupport(BuildContext context) async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
@@ -89,35 +92,36 @@ class _LoginPageState extends State<LoginPage> {
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
+
   void _showAccountSuspendedDialog(Map<String, dynamic> statusData) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.warning, color: Colors.orange.shade700),
-            const SizedBox(width: 8),
-            const Text('Account Suspended'),
-          ],
-        ),
-        content: Text(_getSuspensionMessage(statusData)),
-        actions: [
-          Row(
-            children: [
-              TextButton(
-                onPressed: () => _emailSupport(context),
-                child: const Text('Contact support'),
+      builder:
+          (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.warning, color: Colors.orange.shade700),
+                const SizedBox(width: 8),
+                const Text('Account Suspended'),
+              ],
+            ),
+            content: Text(_getSuspensionMessage(statusData)),
+            actions: [
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () => _emailSupport(context),
+                    child: const Text('Contact support'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
               ),
-
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
             ],
           ),
-        ],
-      ),
     );
   }
 
@@ -125,31 +129,31 @@ class _LoginPageState extends State<LoginPage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.block, color: Colors.red.shade700),
-            const SizedBox(width: 8),
-            const Text('Account Banned'),
-          ],
-        ),
-        content: Text(_getBanMessage(statusData)),
-        actions: [
-          Row(
-            children: [
-              TextButton(
-                onPressed: () => _emailSupport(context),
-                child: const Text('Contact support'),
-              ),
-
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+      builder:
+          (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.block, color: Colors.red.shade700),
+                const SizedBox(width: 8),
+                const Text('Account Banned'),
+              ],
+            ),
+            content: Text(_getBanMessage(statusData)),
+            actions: [
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () => _emailSupport(context),
+                    child: const Text('Contact support'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
     );
   }
 
@@ -170,7 +174,9 @@ class _LoginPageState extends State<LoginPage> {
           .signInWithEmailAndPassword(email: email, password: password);
 
       // Check account status before proceeding
-      Map<String, dynamic>? statusData = await _checkAccountStatus(userCredential.user!.uid);
+      Map<String, dynamic>? statusData = await _checkAccountStatus(
+        userCredential.user!.uid,
+      );
 
       if (statusData != null) {
         final status = statusData['status']?.toString();
@@ -192,7 +198,8 @@ class _LoginPageState extends State<LoginPage> {
               _isLoading = false;
             });
             _showAccountSuspendedDialog(statusData);
-            await FirebaseAuth.instance.signOut(); // Sign out the suspended user
+            await FirebaseAuth.instance
+                .signOut(); // Sign out the suspended user
             return;
           } else {
             // Suspension period has ended, reactivate account
@@ -200,19 +207,20 @@ class _LoginPageState extends State<LoginPage> {
                 .collection('users')
                 .doc(userCredential.user!.uid)
                 .update({
-              'accountStatus': {
-                'status': 'active',
-                'reactivatedAt': Timestamp.now(),
-              }
-            });
+                  'accountStatus': {
+                    'status': 'active',
+                    'reactivatedAt': Timestamp.now(),
+                  },
+                });
           }
         }
       }
 
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .get();
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .get();
 
       if (!userDoc.exists) {
         setState(() {
@@ -224,12 +232,13 @@ class _LoginPageState extends State<LoginPage> {
 
       final data = userDoc.data() as Map<String, dynamic>;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login Successful')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Login Successful')));
 
       // Check if the user's profile is complete
       bool isProfileComplete = data['profileComplete'] == true;
+      String userRole = data['role'];
 
       if (isProfileComplete) {
         Navigator.pushReplacement(
@@ -237,10 +246,20 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (_) => AuthenticationWrapper()),
         );
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AdditionalDetailsScreen()),
-        );
+        // Only navigate to AdditionalDetailsScreen if role is patient
+        if (userRole == 'patient') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdditionalDetailsScreen()),
+          );
+        } else {
+          // For other roles (doctor, admin, etc.), go to AuthenticationWrapper
+          // or you can handle their profile completion differently
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => AuthenticationWrapper()),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -280,7 +299,9 @@ class _LoginPageState extends State<LoginPage> {
       // Check if the account exists and is not banned/suspended before allowing reset
       try {
         // Try to find the user by email
-        final methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+        final methods = await FirebaseAuth.instance.fetchSignInMethodsForEmail(
+          email,
+        );
         if (methods.isEmpty) {
           setState(() {
             _emailError = 'No account found with this email';
@@ -327,10 +348,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 8),
                 const Text(
                   'Enter your login details to continue',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 8),
 
@@ -369,9 +387,11 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility),
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -380,24 +400,27 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     errorText: _passwordError,
                   ),
-                  validator: (value) =>
-                  (value == null || value.isEmpty) ? 'Enter password' : null,
+                  validator:
+                      (value) =>
+                          (value == null || value.isEmpty)
+                              ? 'Enter password'
+                              : null,
                 ),
                 const SizedBox(height: 30),
 
                 _isLoading
                     ? const CircularProgressIndicator()
                     : SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _login,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      textStyle: const TextStyle(fontSize: 18),
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _login,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 18),
+                        ),
+                        child: const Text('Login'),
+                      ),
                     ),
-                    child: const Text('Login'),
-                  ),
-                ),
 
                 const SizedBox(height: 16),
 
@@ -419,7 +442,7 @@ class _LoginPageState extends State<LoginPage> {
                         );
                       },
                       child: const Text('Sign Up'),
-                    )
+                    ),
                   ],
                 ),
               ],

@@ -66,6 +66,8 @@ class _InboxScreenState extends State<InboxScreen> {
     super.dispose();
   }
 
+  Map? _cachedChats;
+
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
@@ -158,22 +160,20 @@ class _InboxScreenState extends State<InboxScreen> {
             child: StreamBuilder<DatabaseEvent>(
               stream: FirebaseDatabase.instance.ref('chats').onValue,
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.teal[700]!,
-                      ),
-                    ),
-                  );
+                final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+                // 🔹 Persistent cache to avoid flicker
+                if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                  _cachedChats = snapshot.data!.snapshot.value as Map;
                 }
 
-                if (!snapshot.hasData ||
-                    snapshot.data!.snapshot.value == null) {
+                // Use cached data if Firebase hasn't sent new data yet
+                final data = _cachedChats ?? {};
+
+                if (data.isEmpty) {
                   return _buildEmptyState();
                 }
 
-                final data = snapshot.data!.snapshot.value as Map;
                 final chats =
                     data.entries.where((e) {
                       final meta = (e.value as Map)['meta'];
@@ -187,7 +187,7 @@ class _InboxScreenState extends State<InboxScreen> {
                               : meta['doctorName'] ?? 'Doctor';
 
                       final matchesSearch = peerName.toLowerCase().contains(
-                        _searchQuery,
+                        _searchQuery.toLowerCase(),
                       );
 
                       return isCurrentUserInChat && matchesSearch;
@@ -197,14 +197,14 @@ class _InboxScreenState extends State<InboxScreen> {
                   return _buildNoResultsState();
                 }
 
+                // ✅ Real-time list with cache
                 return ListView.separated(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
                   ),
                   itemCount: chats.length,
-                  separatorBuilder:
-                      (context, index) => const SizedBox(height: 8),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final chatId = chats[index].key;
                     final chat = chats[index].value as Map;
@@ -222,7 +222,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     final peerImage =
                         meta['doctorImage'] ?? meta['patientImage'];
 
-                    // Get last message
+                    // Last message
                     String lastMessage = 'Start a conversation';
                     int lastTimestamp = meta['lastUpdated'] ?? 0;
                     String lastSender = '';
@@ -244,7 +244,7 @@ class _InboxScreenState extends State<InboxScreen> {
                     final formattedTime = _formatTimestamp(lastTimestamp);
                     final isLastMessageFromMe = lastSender == currentUserId;
 
-                    // Count unread messages
+                    // Unread count
                     final unreadCount =
                         messages.entries.where((msg) {
                           final message = msg.value;

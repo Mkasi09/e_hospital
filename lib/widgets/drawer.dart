@@ -10,51 +10,75 @@ import '../screens/settings/doctor_settings_screen.dart';
 import '../screens/settings/help_faq_screen.dart';
 import '../screens/settings/terms_and_conditons.dart';
 
-class RoleBasedDrawer extends StatelessWidget {
+class RoleBasedDrawer extends StatefulWidget {
   const RoleBasedDrawer({super.key});
 
-  Future<Map<String, dynamic>> _fetchUserData() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      return {
-        'displayName': 'User',
-        'profileUrl': null,
-        'onlineStatus': false,
-        'role': 'unknown',
-      };
-    }
+  @override
+  State<RoleBasedDrawer> createState() => _RoleBasedDrawerState();
+}
 
-    // Check cached role first
+class _RoleBasedDrawerState extends State<RoleBasedDrawer> {
+  late Future<Map<String, dynamic>> _userDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userDataFuture = _getCachedUserData();
+    _fetchAndCacheUserData(); // Fetch in background without blocking UI
+  }
+
+  // Get cached data immediately without waiting for network
+  Future<Map<String, dynamic>> _getCachedUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    String? cachedRole = prefs.getString('userRole');
 
-    final snapshot =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    return {
+      'displayName': prefs.getString('userDisplayName') ?? 'User',
+      'profileUrl': prefs.getString('userProfileUrl'),
+      'onlineStatus': prefs.getBool('userOnlineStatus') ?? false,
+      'role': prefs.getString('userRole') ?? 'unknown',
+    };
+  }
 
-    if (snapshot.exists) {
-      final data = snapshot.data()!;
-      final role = data['role'] ?? cachedRole ?? 'unknown';
-      await prefs.setString('userRole', role);
+  // Fetch fresh data in background and cache it
+  Future<void> _fetchAndCacheUserData() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
 
-      // Pick name field based on role
-      final displayName =
-          role == 'doctor'
-              ? (data['name'] ?? 'Doctor')
-              : (data['fullName'] ?? 'Patient');
+      final snapshot =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
-      return {
-        'displayName': displayName,
-        'profileUrl': data['profilePicture'],
-        'onlineStatus': data['onlineStatus'] ?? false,
-        'role': role,
-      };
-    } else {
-      return {
-        'displayName': 'User',
-        'profileUrl': null,
-        'onlineStatus': false,
-        'role': cachedRole ?? 'unknown',
-      };
+      if (snapshot.exists) {
+        final data = snapshot.data()!;
+        final role = data['role'] ?? 'unknown';
+
+        // Pick name field based on role
+        final displayName =
+            role == 'doctor'
+                ? (data['name'] ?? 'Doctor')
+                : (data['fullName'] ?? 'Patient');
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userRole', role);
+        await prefs.setString('userDisplayName', displayName);
+        await prefs.setString('userProfileUrl', data['profilePicture'] ?? '');
+        await prefs.setBool('userOnlineStatus', data['onlineStatus'] ?? false);
+
+        // Update UI if mounted
+        if (mounted) {
+          setState(() {
+            _userDataFuture = Future.value({
+              'displayName': displayName,
+              'profileUrl': data['profilePicture'],
+              'onlineStatus': data['onlineStatus'] ?? false,
+              'role': role,
+            });
+          });
+        }
+      }
+    } catch (e) {
+      // Silently fail - we'll use cached data
+      debugPrint('Failed to fetch user data: $e');
     }
   }
 
@@ -67,13 +91,18 @@ class RoleBasedDrawer extends StatelessWidget {
       ),
       elevation: 16,
       child: FutureBuilder<Map<String, dynamic>>(
-        future: _fetchUserData(),
+        future: _userDataFuture,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          // Use cached data immediately, no loading state
+          final data =
+              snapshot.data ??
+              {
+                'displayName': 'User',
+                'profileUrl': null,
+                'onlineStatus': false,
+                'role': 'unknown',
+              };
 
-          final data = snapshot.data!;
           final displayName = data['displayName'] ?? 'User';
           final profileUrl = data['profileUrl'];
           final onlineStatus = data['onlineStatus'] ?? false;
@@ -125,11 +154,11 @@ class RoleBasedDrawer extends StatelessWidget {
                                 radius: 32,
                                 backgroundColor: Colors.teal.shade50,
                                 backgroundImage:
-                                    profileUrl != null
+                                    profileUrl != null && profileUrl.isNotEmpty
                                         ? NetworkImage(profileUrl)
                                         : null,
                                 child:
-                                    profileUrl == null
+                                    profileUrl == null || profileUrl.isEmpty
                                         ? Icon(
                                           Icons.person,
                                           color: Colors.teal.shade200,
@@ -349,15 +378,19 @@ class RoleBasedDrawer extends StatelessWidget {
       ),
     );
   }
-}
 
-Future<void> _logout(BuildContext context) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove('userRole'); // clear cached role
-  await FirebaseAuth.instance.signOut();
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userRole');
+    await prefs.remove('userDisplayName');
+    await prefs.remove('userProfileUrl');
+    await prefs.remove('userOnlineStatus');
 
-  Navigator.of(context).pushAndRemoveUntil(
-    MaterialPageRoute(builder: (context) => const LoginPage()),
-    (route) => false,
-  );
+    await FirebaseAuth.instance.signOut();
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+      (route) => false,
+    );
+  }
 }
